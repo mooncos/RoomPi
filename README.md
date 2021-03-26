@@ -8,6 +8,8 @@ RoomPi es un sistema de monitorización de las condiciones ambientales de un aul
 
 ![Imagen del Sistema RoomPi](https://i.imgur.com/fkiQ8cR.jpg)
 
+## Sistema
+
 Actualmente el sistema hace uso de los siguientes sensores y actuadores externos:
 
 - Sensores
@@ -17,6 +19,8 @@ Actualmente el sistema hace uso de los siguientes sensores y actuadores externos
   - HD44780 (pantalla de caracteres de dos líneas)
   - SN74HC595 (shift register de 8 bits para tira de LEDs)
   - Buzzer activo
+
+## Compilación
 
 El proyecto hace uso de las siguentes librerías:
 
