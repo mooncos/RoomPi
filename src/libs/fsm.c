@@ -43,4 +43,3 @@ fsm_fire (fsm_t* this)
     }
   }
 }
-

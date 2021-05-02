@@ -1,2 +1,7 @@
+<<<<<<< HEAD
 eclipse.preferences.version=1
 org.eclipse.ltk.core.refactoring.enable.project.refactoring.history=false
+=======
+eclipse.preferences.version=1
+org.eclipse.ltk.core.refactoring.enable.project.refactoring.history=false
+>>>>>>> e85f0b74e4236f2f61ef2d3035bd6aaafb41b83d

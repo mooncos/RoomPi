@@ -130,4 +130,3 @@ void StatusLEDOutput__set_color_error(StatusLEDOutput *leds) {
 	int arr[1] = { 0b10101010 };
 	StatusLEDOutput__set_all(leds, arr);
 }
-

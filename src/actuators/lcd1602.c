@@ -316,4 +316,3 @@ void LCD1602Display__write8bits(LCD1602Display *display, int value) {
 
 	LCD1602Display__pulse_enable(display);
 }
-
