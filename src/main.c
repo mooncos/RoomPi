@@ -33,7 +33,7 @@ SystemType* systemSetup(void) {
 
 	// CCS811 CO2 sensor Creation and Setup
 	printf("[LOG-CCS811Sensor]  CCS811Sensor is being initialized and set up...\n");
-	//CCS811Sensor *ccs_sensor = CCS811Sensor__create();
+	CCS811Sensor *ccs_sensor = CCS811Sensor__create(5, 0x52, 17, 18, 19);
 
 	/* Creation of the attached actuators */
 
@@ -99,7 +99,10 @@ SystemType* systemSetup(void) {
 int main(int argc, char **argv) {
 	SystemType *roompi_system = systemSetup();
 
-	tmr_startms(roompi_system->root_measurement_ctrl->timer, 10000);
+	//tmr_startms(roompi_system->root_measurement_ctrl->timer, 10000); WORK IN PROGRESS (TO BE REFACTORED)
+	tmr_startms(roompi_system->root_system->sensor_light->timer, 5000); // fire light fsm every 5 seconds
+
+	// Output system timer
 	tmr_startms(roompi_system->root_output_ctrl->timer, 5000);
 
 	//output_flags |= FLAG_NEXT_DISPLAY;

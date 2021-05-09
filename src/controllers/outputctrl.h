@@ -15,7 +15,7 @@
 #define FLAG_NEXT_DISPLAY_INFO 0x01
 #define FLAG_NEXT_DISPLAY_WARNING 0x02
 
-#define OUTPUT_LOCK 0
+#define OUTPUT_LOCK 1
 
 typedef struct {
 	fsm_t *fsm_buzzer; // FSM buzzer

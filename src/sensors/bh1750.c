@@ -18,6 +18,33 @@
 
 #include "bh1750.h"
 #include "../utils.h"
+#include "../libs/systemlib.h"
+#include "../libs/systemtype.h"
+
+// FSM Functions and variables
+
+extern int measurement_flags; // grab global light flags
+
+// Timer
+static void _light_timer_isr(union sigval value);
+
+// FSM states enum
+static enum _light_fsm_state { LIGHT_MEASUREMENT };
+
+// FSM input check functions
+static int _light_pending_measurement(fsm_t *this);
+
+// FSM output action functions
+static void _light_do_measurement(fsm_t *this);
+
+// { EstadoOrigen, CondicionDeDisparo, EstadoFinal, AccionesSiTransicion }
+static fsm_trans_t _light_fsm_tt[] = {
+		{ LIGHT_MEASUREMENT, _light_pending_measurement, LIGHT_MEASUREMENT, _light_do_measurement },
+		{-1, NULL, -1, NULL}
+};
+
+/************************/
+
 
 BH1750Sensor* BH1750Sensor__create(int id, int addr, int mode) {
 	BH1750Sensor* result = (BH1750Sensor*) malloc(sizeof(BH1750Sensor));
@@ -27,11 +54,21 @@ BH1750Sensor* BH1750Sensor__create(int id, int addr, int mode) {
 	result->lux = 0;
 	result->fd = wiringPiI2CSetup(addr);
 
+	// Timer instantiation
+	tmr_t *light_timer = tmr_new(_light_timer_isr); // creado pero no iniciado
+	result->timer = light_timer;
+
+	// FSM creation
+	result->fsm = (fsm_t *) fsm_new(LIGHT_MEASUREMENT, _light_fsm_tt, result);
+
+
 	return result;
 }
 
 void BH1750Sensor__destroy(BH1750Sensor* sensor_instance)  {
 	if (sensor_instance) {
+		fsm_destroy(sensor_instance->fsm);
+		tmr_destroy(sensor_instance->timer);
 		free(sensor_instance);
 	}
 }
@@ -48,4 +85,34 @@ int BH1750Sensor__perform_measurement(BH1750Sensor* sensor_instance) {
 
 int BH1750Sensor__lux_value(BH1750Sensor* sensor_instance) {
 	return sensor_instance->lux;
+}
+
+/************************/
+
+static void _light_timer_isr(union sigval value) {
+	piLock(MEASUREMENT_LOCK);
+	measurement_flags |= FLAG_LIGHT_PENDING_MEASUREMENT;
+	piUnlock(MEASUREMENT_LOCK);
+}
+
+static int _light_pending_measurement(fsm_t *this) {
+	return (measurement_flags & FLAG_LIGHT_PENDING_MEASUREMENT);
+}
+
+static void _light_do_measurement(fsm_t *this) {
+	BH1750Sensor* bh = (BH1750Sensor*) this->user_data;
+	int r = BH1750Sensor__perform_measurement(bh);
+
+	SensorValueType res_light_val; // craft SensorValueType instance with type Integer and value measured lux or error
+	if (r < 0) {
+		// we have an error
+		res_light_val.type = is_error;
+		res_light_val.val.ival = 0;
+	} else {
+		res_light_val.type = is_int;
+		res_light_val.val.ival = BH1750Sensor__lux_value(bh);
+	}
+
+	extern SystemType *roompi_system; // get the current system
+	CircularBufferPush(roompi_system->root_system->sensor_storage[2], res_light_val, sizeof(res_light_val)); // light circular buffer is at index 2 of the table
 }

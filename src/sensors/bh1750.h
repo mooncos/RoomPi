@@ -8,6 +8,12 @@
 #ifndef BH1750_H_
 #define BH1750_H_
 
+#include "../libs/fsm.h"
+#include "../libs/timerlib.h"
+#include "../libs/circularbuffer.h"
+
+#define FLAG_LIGHT_PENDING_MEASUREMENT 0x02
+
 // I2C Opcodes defines
 
 #define POWER_DOWN 0x00
@@ -31,6 +37,9 @@ typedef struct {
 	int mode; // sensor operating mode (continuous/one time-hires/lowres)
 	int fd; // file descriptor handle representing the i2c device
 	int lux;
+
+	fsm_t *fsm; // FSM that performs a measurement from the light sensor
+	tmr_t *timer; // timer that goberns a flag used by the light sensor measurement FSM (5 s periodic)
 } BH1750Sensor;
 
 BH1750Sensor* BH1750Sensor__create(int id, int addr, int mode);
