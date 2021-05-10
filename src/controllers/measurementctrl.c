@@ -20,48 +20,19 @@ extern int measurement_flags;
 static void _measurement_timer_isr(union sigval value);
 
 // FSM states enum
-enum _fsm_state { NO_MEASUREMENT, TEMP_HUMID_MEASUREMENT, LIGHT_MEASUREMENT, CO2_MEASUREMENT };
+enum _fsm_state { NO_PROCESS, PROCESS_MEASUREMENT };
 
-// FSM input check functions
-static int _temp_humid_pending_measurement(fsm_t *this);
-//static int _temp_humid_not_pending_measurement(fsm_t *this) {
-//	return !(_temp_humid_pending_measurement(this));
-//}
-
-static int _light_pending_measurement(fsm_t *this);
-static int _light_not_pending_measurement(fsm_t *this) {
-	return !(_light_pending_measurement(this));
-}
-
-static int _co2_pending_measurement(fsm_t *this);
-static int _co2_not_pending_measurement(fsm_t *this) {
-	return !(_co2_pending_measurement(this));
-}
-
-static int _light_and_co2_not_pending_measurement(fsm_t *this){
-	return (_light_not_pending_measurement(this) && _co2_not_pending_measurement(this));
-}
-
-static int _always(fsm_t* this) {
-	return 1;
-}
+static int _measurement_pending_processing(fsm_t *this);
+static int _measurement_processing_finished(fsm_t *this);
 
 // FSM output action functions
-static void _temp_humid_do_measurement(fsm_t *this);
-static void _light_do_measurement(fsm_t *this);
-static void _co2_do_measurement(fsm_t *this);
+static void _measurement_do_processing(fsm_t *this);
+static void _measurement_do_database_update(fsm_t *this);
 
 // { EstadoOrigen, CondicionDeDisparo, EstadoFinal, AccionesSiTransicion }
 static fsm_trans_t _measurement_fsm_tt[] = {
-		{ NO_MEASUREMENT, _temp_humid_pending_measurement, TEMP_HUMID_MEASUREMENT, _temp_humid_do_measurement },
-		{ NO_MEASUREMENT, _light_pending_measurement, LIGHT_MEASUREMENT, _light_do_measurement },
-		{ NO_MEASUREMENT, _co2_pending_measurement, CO2_MEASUREMENT, _co2_do_measurement },
-		{ TEMP_HUMID_MEASUREMENT, _light_pending_measurement, LIGHT_MEASUREMENT, _light_do_measurement },
-		{ TEMP_HUMID_MEASUREMENT, _co2_pending_measurement, CO2_MEASUREMENT, _co2_do_measurement },
-		{ TEMP_HUMID_MEASUREMENT, _light_and_co2_not_pending_measurement, NO_MEASUREMENT, NULL },
-		{ LIGHT_MEASUREMENT, _co2_pending_measurement, CO2_MEASUREMENT, _co2_do_measurement },
-		{ LIGHT_MEASUREMENT, _co2_not_pending_measurement, NO_MEASUREMENT, NULL },
-		{ CO2_MEASUREMENT, _always, NO_MEASUREMENT, NULL },
+		{ NO_PROCESS, _measurement_pending_processing, PROCESS_MEASUREMENT, _measurement_do_processing },
+		{ PROCESS_MEASUREMENT, _measurement_processing_finished, NO_PROCESS, _measurement_do_database_update },
 		{-1, NULL, -1, NULL}
 };
 

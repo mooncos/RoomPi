@@ -29,7 +29,7 @@ extern int measurement_flags; // grab global light flags
 static void _light_timer_isr(union sigval value);
 
 // FSM states enum
-static enum _light_fsm_state { LIGHT_MEASUREMENT };
+enum _light_fsm_state { LIGHT_MEASUREMENT };
 
 // FSM input check functions
 static int _light_pending_measurement(fsm_t *this);
