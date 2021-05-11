@@ -29,7 +29,7 @@ extern int measurement_flags; // grab global light flags
 static void _light_timer_isr(union sigval value);
 
 // FSM states enum
-static enum _light_fsm_state { LIGHT_MEASUREMENT };
+enum _light_fsm_state { LIGHT_MEASUREMENT };
 
 // FSM input check functions
 static int _light_pending_measurement(fsm_t *this);
@@ -59,7 +59,7 @@ BH1750Sensor* BH1750Sensor__create(int id, int addr, int mode) {
 	result->timer = light_timer;
 
 	// FSM creation
-	result->fsm = (fsm_t *) fsm_new(LIGHT_MEASUREMENT, _light_fsm_tt, result);
+	result->fsm = (fsm_t *) fsm_new(LIGHT_MEASUREMENT, _light_fsm_tt, result); //3rd param pointer available under user_data
 
 
 	return result;
@@ -73,6 +73,10 @@ void BH1750Sensor__destroy(BH1750Sensor* sensor_instance)  {
 	}
 }
 
+int BH1750Sensor__lux_value(BH1750Sensor* sensor_instance) {
+	return sensor_instance->lux;
+}
+
 int BH1750Sensor__perform_measurement(BH1750Sensor* sensor_instance) {
 	//wiringPiI2CWrite(sensor_instance->fd, RESET);
 	int r = wiringPiI2CWrite(sensor_instance->fd, sensor_instance->mode); // error if function returns < 0
@@ -81,10 +85,6 @@ int BH1750Sensor__perform_measurement(BH1750Sensor* sensor_instance) {
 	word = bswap_16(word);
 	sensor_instance->lux = word / 1.2;
 	return r;
-}
-
-int BH1750Sensor__lux_value(BH1750Sensor* sensor_instance) {
-	return sensor_instance->lux;
 }
 
 /************************/
@@ -109,6 +109,9 @@ static void _light_do_measurement(fsm_t *this) {
 		res_light_val.type = is_error;
 		res_light_val.val.ival = 0;
 	} else {
+		piLock(MEASUREMENT_LOCK);
+		measurement_flags &= ~(FLAG_LIGHT_PENDING_MEASUREMENT);
+		piUnlock(MEASUREMENT_LOCK);
 		res_light_val.type = is_int;
 		res_light_val.val.ival = BH1750Sensor__lux_value(bh);
 	}

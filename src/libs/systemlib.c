@@ -22,7 +22,6 @@ SystemContext* SystemContext__create(int id_classroom,
 	result->actuator_buzzer = actuator_buzzer;
 	result->actuator_leds = actuator_leds;
 
-
 	// Create circular buffers
 	for (int i = 0; sizeof(result->sensor_storage) / sizeof(CircularBuffer); i++) {
 		result->sensor_storage[i] = CircularBufferCreate(5 * sizeof(SensorValueType));

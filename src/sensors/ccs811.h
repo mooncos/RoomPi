@@ -10,6 +10,11 @@
 #define SENSORS_CCS811_H_
 
 #include<stdint.h>
+#include "../libs/fsm.h"
+#include "../libs/timerlib.h"
+#include "../libs/circularbuffer.h"
+
+#define FLAG_CO2_PENDING_MEASUREMENT 0x04
 
 #define MODE0_IDLE 0b000
 #define MODE1_EACH_1S 0b001
@@ -147,6 +152,9 @@ typedef struct {
 	int file; // file descriptor for i2c
 
 	union ApplicationRegister app_register; // application register
+
+	fsm_t *fsm; // FSM that performs a measurement from the co2 sensor
+	tmr_t *timer; // timer that goberns a flag used by the co2 sensor measurement FSM (x s periodic) // no se el tiempo aun
 } CCS811Sensor;
 
 CCS811Sensor* CCS811Sensor__create(int id, int addr, int addr_pin, int interrupt_pin, int rst_pin);

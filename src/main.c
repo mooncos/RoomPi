@@ -100,7 +100,10 @@ int main(int argc, char **argv) {
 	SystemType *roompi_system = systemSetup();
 
 	//tmr_startms(roompi_system->root_measurement_ctrl->timer, 10000); WORK IN PROGRESS (TO BE REFACTORED)
+	tmr_startms(roompi_system->root_system->sensor_temp_humid->timer, 5000); // fire temp humid fsm every 5 seconds
 	tmr_startms(roompi_system->root_system->sensor_light->timer, 5000); // fire light fsm every 5 seconds
+	tmr_startms(roompi_system->root_system->sensor_co2->timer, 5000);  // fire co2 fsm every 5 seconds
+
 
 	// Output system timer
 	tmr_startms(roompi_system->root_output_ctrl->timer, 5000);

@@ -18,6 +18,10 @@
 #include <sys/stat.h>
 
 #include "ccs811.h"
+#include "../utils.h"
+#include "../libs/systemlib.h"
+#include "../libs/systemtype.h"
+
 
 const char getRegister(const char reg, const int numBytes);
 char* getSelectedRegister(char registerSelected);
@@ -25,6 +29,31 @@ int selectRegister(CCS811Sensor *sensor_instance, const char reg);
 int readI2C(CCS811Sensor *sensor_instance, const int numBytes);
 int writeI2CBytes(CCS811Sensor *sensor_instance, const char reg, int numBytes);
 
+
+// FSM Functions and variables
+
+extern int measurement_flags; // grab global co2 flags
+
+// Timer
+static void _co2_timer_isr(union sigval value);
+
+// FSM states enum
+enum _light_fsm_state { CO2_MEASUREMENT };
+
+// FSM input check functions
+static int _co2_pending_measurement(fsm_t *this);
+
+// FSM output action functions
+static void _co2_do_measurement(fsm_t *this);
+
+// { EstadoOrigen, CondicionDeDisparo, EstadoFinal, AccionesSiTransicion }
+static fsm_trans_t _co2_fsm_tt[] = {
+		{ CO2_MEASUREMENT, _co2_pending_measurement, CO2_MEASUREMENT, _co2_do_measurement },
+		{-1, NULL, -1, NULL}
+};
+
+
+/************************/
 CCS811Sensor* CCS811Sensor__create(int id, int addr, int addr_pin, int interrupt_pin, int rst_pin) {
 	CCS811Sensor *result = (CCS811Sensor*) malloc(sizeof(CCS811Sensor));
 
@@ -35,12 +64,21 @@ CCS811Sensor* CCS811Sensor__create(int id, int addr, int addr_pin, int interrupt
 	result->interrupt_pin = interrupt_pin;
 	result->rst_pin = rst_pin;
 
+	// Timer instantiation
+		tmr_t *co2_timer = tmr_new(_co2_timer_isr); // creado pero no iniciado
+		result->timer = co2_timer;
+
+	// FSM creation
+		result->fsm = (fsm_t *) fsm_new(CO2_MEASUREMENT, _co2_fsm_tt, result); //3rd param pointer available under user_data
+
 	return result;
 
 }
 
 void CCS811Sensor__destroy(CCS811Sensor *sensor_instance) {
 	if (sensor_instance) {
+		fsm_destroy(sensor_instance->fsm);
+		tmr_destroy(sensor_instance->timer);
 		free(sensor_instance);
 	}
 }
@@ -313,3 +351,55 @@ int writeI2CBytes(CCS811Sensor *sensor_instance, const char reg, int numBytes) {
 const char getRegister(const char reg, const int numBytes) {
 	return reg;
 }
+
+
+/************************/
+
+static void _co2_timer_isr(union sigval value) {
+	piLock(MEASUREMENT_LOCK);
+	measurement_flags |= FLAG_CO2_PENDING_MEASUREMENT;
+	piUnlock(MEASUREMENT_LOCK);
+}
+
+static int _co2_pending_measurement(fsm_t *this) {
+	return (measurement_flags & FLAG_CO2_PENDING_MEASUREMENT);
+}
+
+static void _co2_do_measurement(fsm_t *this) {
+	CCS811Sensor* ccs = (CCS811Sensor*) this->user_data;
+	//DHT11Sensor* dht = (DHT11Sensor*) this->user_data;
+
+	// check if temp and humid values available and send them to the co2 sensor
+	if (!_temp_humid_pending_measurement(this)){ //no se si se puede hacer esto porque ahora esto es controlado por master y quizas aunque siga el flag de pending activo ya tenemos medida quw poder usar
+		CCS811Sensor__set_environment_data(ccs, dht->t_value, dht->rh_value);
+
+		// check if co2 measurement available
+		if(CCS811Sensor__available(ccs)){
+			piLock(MEASUREMENT_LOCK);
+			measurement_flags &= ~(FLAG_CO2_PENDING_MEASUREMENT);
+			piUnlock(MEASUREMENT_LOCK);
+		}
+
+	}
+
+
+
+	int r =
+
+	SensorValueType res_co2_val; // craft SensorValueType instance with type Integer and value measured lux or error
+	if (r < 0) {
+		// we have an error
+		res_co2_val.type = is_error;
+		res_co2_val.val.ival = 0;
+	} else {
+		piLock(MEASUREMENT_LOCK);
+		measurement_flags &= ~(FLAG_LIGHT_PENDING_MEASUREMENT);
+		piUnlock(MEASUREMENT_LOCK);
+		res_co2_val.type = is_int;
+		res_co2_val.val.ival = BH1750Sensor__lux_value(bh);
+	}
+
+	extern SystemType *roompi_system; // get the current system
+	CircularBufferPush(roompi_system->root_system->sensor_storage[2], res_light_val, sizeof(res_light_val)); // light circular buffer is at index 2 of the table
+}
+
