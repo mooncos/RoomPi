@@ -148,7 +148,11 @@ static void _measurement_do_processing(fsm_t *this) {
 	// iterate for each sensor
 	for (int i = 0; sizeof(this_system->sensor_storage) / sizeof(CircularBuffer); i++) {
 		SensorValueType tmp[5];
+
+		piLock(STORAGE_LOCK);
 		CircularBufferRead(this_system->sensor_storage[i], 5 * sizeof(SensorValueType), tmp); // copy circular buffer to SensorValueType array
+		piUnlock(STORAGE_LOCK);
+
 		int type = i < 2 ? is_float : is_int;
 
 		int h_idx, l_idx;
@@ -160,24 +164,37 @@ static void _measurement_do_processing(fsm_t *this) {
 
 		for (int j = 0; sizeof(tmp) / sizeof(SensorValueType); j++) {
 			if (j != h_idx && j != l_idx && tmp[j].type != is_error) {
-				avg.val += tmp[j].val;
+				switch (type) {
+				case is_int:
+					avg.val.ival += tmp[j].val.ival;
+					break;
+				case is_float:
+					avg.val.fval += tmp[j].val.fval;
+				}
 				iters++;
 			}
 		}
 
 		if (iters != 0) {
-			avg.val.ival /= iters;
-			avg.val.fval /= iters;
+			switch (type) {
+			case is_int:
+				avg.val.ival /= iters;
+				break;
+			case is_float:
+				avg.val.fval /= iters;
+			}
+
 			this_system->sensor_values[i] = avg;
 		} else {
 			SensorValueType error_val = { .type = is_error, .val.ival = 0 };
 			this_system->sensor_values[i] = error_val;
-
-			piLock(MEASUREMENT_LOCK);
-			measurement_flags |= FLAG_PROCESSING_READY;
-			piUnlock(MEASUREMENT_LOCK);
 		}
+
 	}
+
+	piLock(MEASUREMENT_LOCK);
+	measurement_flags |= FLAG_PROCESSING_READY;
+	piUnlock(MEASUREMENT_LOCK);
 }
 
 static void _measurement_do_alerts(fsm_t *this) {
@@ -202,7 +219,7 @@ static void _measurement_do_database_update(fsm_t *this) {
 	SystemContext *this_system = (SystemContext*) this->user_data;
 	// iterate for each sensor
 	for (int i = 0; sizeof(this_system->sensor_values) / sizeof(SensorValueType); i++) {
-
+		// upload to db
 	}
 }
 
@@ -270,7 +287,7 @@ static void _light_do_alerts(SystemContext *this) {
 }
 
 static void _co2_do_alerts(SystemContext *this) {
-	int eco2_val = this->sensor_values.val.ival;
+	int eco2_val = this->sensor_values[3].val.ival;
 
 	piLock(MEASUREMENT_LOCK);
 	measurement_flags &= ~(FLAG_CO2_ANOMALY | FLAG_CO2_EMERGENCY); // assume there are no abnormal values

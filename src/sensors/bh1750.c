@@ -109,15 +109,17 @@ static void _light_do_measurement(fsm_t *this) {
 		res_light_val.type = is_error;
 		res_light_val.val.ival = 0;
 	} else {
-		piLock(MEASUREMENT_LOCK);
-		measurement_flags &= ~(FLAG_LIGHT_PENDING_MEASUREMENT);
-		piUnlock(MEASUREMENT_LOCK);
 		res_light_val.type = is_int;
 		res_light_val.val.ival = BH1750Sensor__lux_value(bh);
 	}
 
 	extern SystemType *roompi_system; // get the current system
+
 	piLock(STORAGE_LOCK);
 	CircularBufferPush(roompi_system->root_system->sensor_storage[2], (SensorValueType*) &res_light_val, sizeof(res_light_val)); // light circular buffer is at index 2 of the table
 	piUnlock(STORAGE_LOCK);
+
+	piLock(MEASUREMENT_LOCK);
+	measurement_flags &= ~(FLAG_LIGHT_PENDING_MEASUREMENT);
+	piUnlock(MEASUREMENT_LOCK);
 }

@@ -192,10 +192,6 @@ static void _temp_humid_do_measurement(fsm_t *this) {
 		res_humid_val.val.ival = 0;
 
 	} else {
-		piLock(MEASUREMENT_LOCK);
-		measurement_flags &= ~(FLAG_TEMP_HUMID_PENDING_MEASUREMENT);
-		piUnlock(MEASUREMENT_LOCK);
-
 		res_temp_val.type = is_float;
 		res_temp_val.val.fval = DHT11Sensor__t_value(dht);
 
@@ -204,9 +200,14 @@ static void _temp_humid_do_measurement(fsm_t *this) {
 	}
 
 	extern SystemType *roompi_system; // get the current system
+
 	piLock(STORAGE_LOCK);
 	CircularBufferPush(roompi_system->root_system->sensor_storage[0], (SensorValueType*) &res_temp_val, sizeof(res_temp_val));
 	CircularBufferPush(roompi_system->root_system->sensor_storage[1], (SensorValueType*) &res_humid_val, sizeof(res_humid_val));
 	piUnlock(STORAGE_LOCK);
+
+	piLock(MEASUREMENT_LOCK);
+	measurement_flags &= ~(FLAG_TEMP_HUMID_PENDING_MEASUREMENT);
+	piUnlock(MEASUREMENT_LOCK);
 
 }

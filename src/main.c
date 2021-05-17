@@ -16,6 +16,8 @@ volatile int output_flags = 0x00;
 #include "controllers/measurementctrl.h"
 #include "controllers/outputctrl.h"
 
+SystemType *roompi_system;
+
 SystemType* systemSetup(void) {
 
 	printf("[LOG] System is being initialized and set up...\n");
@@ -52,7 +54,6 @@ SystemType* systemSetup(void) {
 	printf("[LOG-LCD1602Display] LCD1602Display Actuator is being initialized and set up...\n");
 	LCD1602Display *lcd_actuator = LCD1602Display__create(0, 15, 255, 16, 1, 10, 11, 31, 26, 1, 4, 5, 6);
 	LCD1602Display__begin(lcd_actuator, 16, 2, 0);
-
 
 	/* Creation of custom characters for the display */
 	int clock[8] = { 0x1F, 0x11, 0x0A, 0x04, 0x0E, 0x1F, 0x1F, 0x00 }; // clock symbol for wait operations
@@ -97,9 +98,12 @@ SystemType* systemSetup(void) {
 }
 
 int main(int argc, char **argv) {
-	SystemType *roompi_system = systemSetup();
+	roompi_system = systemSetup();
 
-	//tmr_startms(roompi_system->root_measurement_ctrl->timer, 10000); WORK IN PROGRESS (TO BE REFACTORED)
+	// si pulso boton activa measurement processing
+	// si pulso este otro boton activa next display
+
+	tmr_startms(roompi_system->root_measurement_ctrl->timer, 60000);
 	tmr_startms(roompi_system->root_system->sensor_temp_humid->timer, 5000); // fire temp humid fsm every 5 seconds
 	tmr_startms(roompi_system->root_system->sensor_light->timer, 5000); // fire light fsm every 5 seconds
 	tmr_startms(roompi_system->root_system->sensor_co2->timer, 5000);  // fire co2 fsm every 5 seconds
