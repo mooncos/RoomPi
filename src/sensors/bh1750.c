@@ -117,5 +117,7 @@ static void _light_do_measurement(fsm_t *this) {
 	}
 
 	extern SystemType *roompi_system; // get the current system
-	CircularBufferPush(roompi_system->root_system->sensor_storage[2], res_light_val, sizeof(res_light_val)); // light circular buffer is at index 2 of the table
+	piLock(STORAGE_LOCK);
+	CircularBufferPush(roompi_system->root_system->sensor_storage[2], (SensorValueType*) &res_light_val, sizeof(res_light_val)); // light circular buffer is at index 2 of the table
+	piUnlock(STORAGE_LOCK);
 }

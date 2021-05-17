@@ -367,7 +367,9 @@ static int _co2_pending_measurement(fsm_t *this) {
 
 static void _co2_do_measurement(fsm_t *this) {
 	CCS811Sensor* ccs = (CCS811Sensor*) this->user_data;
-	//DHT11Sensor* dht = (DHT11Sensor*) this->user_data;
+
+	extern SystemType *roompi_system; // get the current system
+	DHT11Sensor* dht = (DHT11Sensor*) roompi_system->root_system->sensor_temp_humid; // get temp humid sensor;
 
 	// check if temp and humid values available and send them to the co2 sensor
 	if (!_temp_humid_pending_measurement(this)){ //no se si se puede hacer esto porque ahora esto es controlado por master y quizas aunque siga el flag de pending activo ya tenemos medida quw poder usar
@@ -378,13 +380,15 @@ static void _co2_do_measurement(fsm_t *this) {
 			piLock(MEASUREMENT_LOCK);
 			measurement_flags &= ~(FLAG_CO2_PENDING_MEASUREMENT);
 			piUnlock(MEASUREMENT_LOCK);
+
+			int eco2 = ccs->app_register.alg_result_data.eco2;
+		} else {
+			// tenemos un error
+			int err = ccs->app_register.status.error; // si no hay error es 0 si hay error es 1
+			//....
 		}
 
 	}
-
-
-
-	int r =
 
 	SensorValueType res_co2_val; // craft SensorValueType instance with type Integer and value measured lux or error
 	if (r < 0) {
