@@ -173,7 +173,7 @@ static void _temp_humid_timer_isr(union sigval value) {
 }
 
 static int _temp_humid_pending_measurement(fsm_t *this) {
-	return (measurement_flags & FLAG_LIGHT_PENDING_MEASUREMENT);
+	return (measurement_flags & FLAG_TEMP_HUMID_PENDING_MEASUREMENT);
 }
 
 static void _temp_humid_do_measurement(fsm_t *this) {

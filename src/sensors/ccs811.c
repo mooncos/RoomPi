@@ -372,38 +372,32 @@ static void _co2_do_measurement(fsm_t *this) {
 	DHT11Sensor* dht = (DHT11Sensor*) roompi_system->root_system->sensor_temp_humid; // get temp humid sensor;
 
 	// check if temp and humid values available and send them to the co2 sensor
-	if (!_temp_humid_pending_measurement(this)){ //no se si se puede hacer esto porque ahora esto es controlado por master y quizas aunque siga el flag de pending activo ya tenemos medida quw poder usar
-		CCS811Sensor__set_environment_data(ccs, dht->t_value, dht->rh_value);
+	    if (!_temp_humid_pending_measurement(this)){ //no se si se puede hacer esto porque ahora esto es controlado por master y quizas aunque siga el flag de pending activo ya tenemos medida quw poder usar
+	        CCS811Sensor__set_environment_data(ccs, dht->t_value, dht->rh_value);
+	    }
 
-		// check if co2 measurement available
-		if(CCS811Sensor__available(ccs)){
-			piLock(MEASUREMENT_LOCK);
-			measurement_flags &= ~(FLAG_CO2_PENDING_MEASUREMENT);
-			piUnlock(MEASUREMENT_LOCK);
 
-			int eco2 = ccs->app_register.alg_result_data.eco2;
-		} else {
-			// tenemos un error
-			int err = ccs->app_register.status.error; // si no hay error es 0 si hay error es 1
-			//....
-		}
+	// check if co2 measurement available, if not nothing happens
+	if(CCS811Sensor__available(ccs)){
+		int eco2 = ccs->app_register.alg_result_data.eco2;
+		int err = ccs->app_register.status.error; // No error: 0, Error:1
+		SensorValueType res_co2_val; // craft SensorValueType instance with type Integer and value measured co2 or error
 
+			if (err > 1) {
+				// we have an error
+				res_co2_val.type = is_error;
+				res_co2_val.val.ival = 0;
+			} else {
+				piLock(MEASUREMENT_LOCK);
+				measurement_flags &= ~(FLAG_CO2_PENDING_MEASUREMENT);
+				piUnlock(MEASUREMENT_LOCK);
+				res_co2_val.type = is_int;
+				res_co2_val.val.ival = eco2;
+			}
+
+		extern SystemType *roompi_system; // get the current system
+		//CircularBufferPush(roompi_system->root_system->sensor_storage[2], res_co2_val, sizeof(res_co2_val)); // co2 circular buffer is at index 2 of the table
 	}
 
-	SensorValueType res_co2_val; // craft SensorValueType instance with type Integer and value measured lux or error
-	if (r < 0) {
-		// we have an error
-		res_co2_val.type = is_error;
-		res_co2_val.val.ival = 0;
-	} else {
-		piLock(MEASUREMENT_LOCK);
-		measurement_flags &= ~(FLAG_LIGHT_PENDING_MEASUREMENT);
-		piUnlock(MEASUREMENT_LOCK);
-		res_co2_val.type = is_int;
-		res_co2_val.val.ival = BH1750Sensor__lux_value(bh);
-	}
-
-	extern SystemType *roompi_system; // get the current system
-	CircularBufferPush(roompi_system->root_system->sensor_storage[2], res_light_val, sizeof(res_light_val)); // light circular buffer is at index 2 of the table
 }
 
