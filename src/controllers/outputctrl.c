@@ -286,12 +286,17 @@ static void _show_info_hour(fsm_t* this) {
 
 static void _show_info_temp(fsm_t* this) {
 	LCD1602Display* display = ((SystemContext*) this->user_data)->actuator_display;
-	DHT11Sensor* dht = ((SystemContext*) this->user_data)->sensor_temp_humid;
+	float t_val = ((SystemContext*) this->user_data)->sensor_values[0].val.fval;
 
 	LCD1602Display__set_cursor(display, 0, 1);
 	LCD1602Display__print(display, "                ");
 	LCD1602Display__set_cursor(display, 0, 1);
-	LCD1602Display__print(display, "Temp: %.1f ", dht->t_value);
+	if (((SystemContext*) this->user_data)->sensor_values[0].type != is_error) {
+		LCD1602Display__print(display, "Temp: %.1f ", t_val);
+	} else {
+		LCD1602Display__print(display, "Temp: Error");
+	}
+
 
 	int degrees_symbol = 0b11011111;
 	LCD1602Display__write(display, degrees_symbol);
@@ -304,12 +309,16 @@ static void _show_info_temp(fsm_t* this) {
 
 static void _show_info_humid(fsm_t* this) {
 	LCD1602Display* display = ((SystemContext*) this->user_data)->actuator_display;
-	DHT11Sensor* dht = ((SystemContext*) this->user_data)->sensor_temp_humid;
+	float rh_val = ((SystemContext*) this->user_data)->sensor_values[1].val.fval;
 
 	LCD1602Display__set_cursor(display, 0, 1);
 	LCD1602Display__print(display, "                ");
 	LCD1602Display__set_cursor(display, 0, 1);
-	LCD1602Display__print(display, "Humidity: %.1f%%", dht->rh_value);
+	if (((SystemContext*) this->user_data)->sensor_values[1].type != is_error) {
+		LCD1602Display__print(display, "Humidity: %.1f%%", rh_val);
+	} else {
+		LCD1602Display__print(display, "Humidity: Error");
+	}
 
 	piLock(OUTPUT_LOCK);
 	output_flags &= ~(FLAG_NEXT_DISPLAY_INFO);
@@ -318,12 +327,16 @@ static void _show_info_humid(fsm_t* this) {
 
 static void _show_info_light(fsm_t* this) {
 	LCD1602Display* display = ((SystemContext*) this->user_data)->actuator_display;
-	BH1750Sensor* bh = ((SystemContext*) this->user_data)->sensor_light;
+	int l_val = ((SystemContext*) this->user_data)->sensor_values[2].val.ival;
 
 	LCD1602Display__set_cursor(display, 0, 1);
 	LCD1602Display__print(display, "                ");
 	LCD1602Display__set_cursor(display, 0, 1);
-	LCD1602Display__print(display, "Light: %d lx", bh->lux);
+	if (((SystemContext*) this->user_data)->sensor_values[2].type != is_error) {
+		LCD1602Display__print(display, "Light: %d lx", l_val);
+	} else {
+		LCD1602Display__print(display, "Light: Error");
+	}
 
 	piLock(OUTPUT_LOCK);
 	output_flags &= ~(FLAG_NEXT_DISPLAY_INFO);
@@ -332,12 +345,16 @@ static void _show_info_light(fsm_t* this) {
 
 static void _show_info_co2(fsm_t* this){
 	LCD1602Display* display = ((SystemContext*) this->user_data)->actuator_display;
-	CCS811Sensor* ccs = ((SystemContext*) this->user_data)->sensor_co2;
+	int eco2_val = ((SystemContext*) this->user_data)->sensor_values[3].val.ival;
 
 	LCD1602Display__set_cursor(display, 0, 1);
 	LCD1602Display__print(display, "                ");
 	LCD1602Display__set_cursor(display, 0, 1);
-	LCD1602Display__print(display, "CO2: %d ppm", ccs->app_register.alg_result_data.eco2);
+	if (((SystemContext*) this->user_data)->sensor_values[3].type != is_error) {
+		LCD1602Display__print(display, "CO2: %d ppm", eco2_val);
+	} else {
+		LCD1602Display__print(display, "CO2: Error");
+	}
 
 	piLock(OUTPUT_LOCK);
 	output_flags &= ~(FLAG_NEXT_DISPLAY_INFO);

@@ -13,9 +13,9 @@
 #include "../libs/systemlib.h"
 
 // 00X1111X1111X111
-#define FLAG_TEMP_HUMID_PENDING_MEASUREMENT 0x01
-#define FLAG_LIGHT_PENDING_MEASUREMENT 0x02
-#define FLAG_CO2_PENDING_MEASUREMENT 0x04
+#define FLAG_PERFORM_PROCESSING 0x2000
+#define FLAG_PROCESSING_READY 0x4000
+#define FLAG_ALERTS_READY 0x8000
 // FUTURE: keep adding new sensors with their pending measurement flags (0x04 for C02 Sensor, 0x08 for Sound Level Sensor)
 #define FLAG_TEMP_ANOMALY 0x10
 #define FLAG_HUMID_ANOMALY 0x20

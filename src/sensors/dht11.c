@@ -203,7 +203,10 @@ static void _temp_humid_do_measurement(fsm_t *this) {
 		res_humid_val.val.fval = DHT11Sensor__rh_value(dht);
 	}
 
-	//extern SystemType *roompi_system; // get the current system
-	//CircularBufferPush(roompi_system->root_system->sensor_storage[2], res_temp_val, sizeof(res_light_val)); // light circular buffer is at index 2 of the table
-}
+	extern SystemType *roompi_system; // get the current system
+	piLock(STORAGE_LOCK);
+	CircularBufferPush(roompi_system->root_system->sensor_storage[0], (SensorValueType*) &res_temp_val, sizeof(res_temp_val));
+	CircularBufferPush(roompi_system->root_system->sensor_storage[1], (SensorValueType*) &res_humid_val, sizeof(res_humid_val));
+	piUnlock(STORAGE_LOCK);
 
+}
