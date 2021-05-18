@@ -213,12 +213,12 @@ static int _next_display_warning(fsm_t *this) {
 }
 
 static int _general_anomaly(fsm_t *this) {
-	int res = measurement_flags & (FLAG_TEMP_ANOMALY | FLAG_HUMID_ANOMALY | FLAG_LIGHT_ANOMALY);
+	int res = measurement_flags & (FLAG_TEMP_ANOMALY | FLAG_HUMID_ANOMALY | FLAG_LIGHT_ANOMALY | FLAG_CO2_EMERGENCY);
 	return res;
 }
 
 static int _general_emergency(fsm_t *this) {
-	int res = measurement_flags & (FLAG_TEMP_EMERGENCY | FLAG_HUMID_EMERGENCY | FLAG_LIGHT_EMERGENCY);
+	int res = measurement_flags & (FLAG_TEMP_EMERGENCY | FLAG_HUMID_EMERGENCY | FLAG_LIGHT_EMERGENCY | FLAG_CO2_EMERGENCY);
 	return res;
 }
 
