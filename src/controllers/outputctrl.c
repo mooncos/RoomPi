@@ -34,7 +34,7 @@ enum _fsm_info_state {
 };
 
 enum _fsm_warning_state {
-	NO_WARNING, TEMPERATURE_WARNING, HUMIDITY_WARNING, LIGHT_WARNING
+	NO_WARNING, TEMPERATURE_WARNING, HUMIDITY_WARNING, LIGHT_WARNING, CO2_WARNING
 };
 
 // FSM input check functions
@@ -57,6 +57,7 @@ static int _not_general_emergency(fsm_t *this) {
 static int _temp_anomaly(fsm_t *this); // temperature sensor anomaly
 static int _humid_anomaly(fsm_t *this); // humidity sensor anomaly
 static int _light_anomaly(fsm_t *this); // light sensor anomaly
+static int _co2_anomaly(fsm_t *this); //  co2 sensor anomaly
 //static int _not_temp_anomaly(fsm_t *this) {
 //	return !(_temp_anomaly(this));
 //}
@@ -89,6 +90,9 @@ static int _humid_anomaly_and_next_display_warning(fsm_t* this) {
 static int _light_anomaly_and_next_display_warning(fsm_t* this) {
 	return (_light_anomaly(this) && _next_display_warning(this));
 }
+static int _co2_anomaly_and_next_display_warning(fsm_t* this) {
+	return (_co2_anomaly(this) && _next_display_warning(this));
+}
 //static int _not_temp_anomaly_and_next_display(fsm_t* this) {
 //	return (_not_temp_anomaly(this) && _next_display(this));
 //}
@@ -118,6 +122,7 @@ static void _show_warning_none(fsm_t* this);
 static void _show_warning_temp(fsm_t* this);
 static void _show_warning_humid(fsm_t* this);
 static void _show_warning_light(fsm_t* this);
+static void _show_warning_co2(fsm_t* this);
 
 
 static fsm_trans_t _buzzer_fsm_tt[] = {
@@ -148,12 +153,17 @@ static fsm_trans_t _warning_fsm_tt[] = {
 		{ NO_WARNING, _temp_anomaly, TEMPERATURE_WARNING, _show_warning_temp },
 		{ NO_WARNING, _humid_anomaly, HUMIDITY_WARNING, _show_warning_humid },
 		{ NO_WARNING, _light_anomaly, LIGHT_WARNING, _show_warning_light },
+		{ NO_WARNING, _co2_anomaly, CO2_WARNING, _show_warning_co2 },
 		{ TEMPERATURE_WARNING, _humid_anomaly_and_next_display_warning, HUMIDITY_WARNING, _show_warning_humid },
 		{ TEMPERATURE_WARNING, _light_anomaly_and_next_display_warning, LIGHT_WARNING, _show_warning_light },
+		{ TEMPERATURE_WARNING, _co2_anomaly_and_next_display_warning, CO2_WARNING, _show_warning_co2 },
 		{ HUMIDITY_WARNING, _light_anomaly_and_next_display_warning, LIGHT_WARNING, _show_warning_light },
+		{ HUMIDITY_WARNING, _co2_anomaly_and_next_display_warning, CO2_WARNING, _show_warning_co2 },
+		{ LIGHT_WARNING, _co2_anomaly_and_next_display_warning, CO2_WARNING, _show_warning_co2 },
 		{ TEMPERATURE_WARNING, _next_display_warning, NO_WARNING, NULL },
 		{ HUMIDITY_WARNING, _next_display_warning, NO_WARNING, NULL },
 		{ LIGHT_WARNING, _next_display_warning, NO_WARNING, NULL },
+		{ CO2_WARNING, _next_display_warning, NO_WARNING, NULL },
 		{-1, NULL, -1, NULL}
 };
 
@@ -224,6 +234,11 @@ static int _humid_anomaly(fsm_t *this) {
 
 static int _light_anomaly(fsm_t *this) {
 	int res = measurement_flags & FLAG_LIGHT_ANOMALY;
+	return res;
+}
+
+static int _co2_anomaly(fsm_t *this) {
+	int res = measurement_flags & FLAG_CO2_ANOMALY;
 	return res;
 }
 
@@ -410,6 +425,20 @@ static void _show_warning_light(fsm_t* this) {
 	LCD1602Display__set_cursor(display, 0, 0);
 	LCD1602Display__write(display, 7);
 	LCD1602Display__print(display, " MUY POCA LUZ");
+
+	piLock(OUTPUT_LOCK);
+	output_flags &= ~(FLAG_NEXT_DISPLAY_WARNING);
+	piUnlock(OUTPUT_LOCK);
+}
+
+static void _show_warning_co2(fsm_t* this) {
+	LCD1602Display* display = ((SystemContext*) this->user_data)->actuator_display;
+
+	LCD1602Display__set_cursor(display, 0, 0);
+	LCD1602Display__print(display, "                ");
+	LCD1602Display__set_cursor(display, 0, 0);
+	LCD1602Display__write(display, 7);
+	LCD1602Display__print(display, " AVISO CO2");
 
 	piLock(OUTPUT_LOCK);
 	output_flags &= ~(FLAG_NEXT_DISPLAY_WARNING);
