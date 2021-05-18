@@ -381,6 +381,7 @@ static void _co2_do_measurement(fsm_t *this) {
 		int err = ccs->app_register.status.error; // No error: 0, Error: 1
 		SensorValueType res_co2_val; // craft SensorValueType instance with type Integer and value measured co2 or error
 
+		if (eco2 == 0) err = 1;
 		if (err > 0) {
 			// we have an error
 			res_co2_val.type = is_error;
@@ -390,7 +391,7 @@ static void _co2_do_measurement(fsm_t *this) {
 			res_co2_val.val.ival = eco2;
 		}
 		piLock(STORAGE_LOCK);
-		CircularBufferPush(roompi_system->root_system->sensor_storage[2], &res_co2_val, sizeof(res_co2_val)); // co2 circular buffer is at index 2 of the table
+		CircularBufferPush(roompi_system->root_system->sensor_storage[3], &res_co2_val, sizeof(res_co2_val)); // co2 circular buffer is at index 2 of the table
 		piUnlock(STORAGE_LOCK);
 
 		piLock(MEASUREMENT_LOCK);

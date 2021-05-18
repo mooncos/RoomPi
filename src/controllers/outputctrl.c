@@ -293,14 +293,12 @@ static void _show_info_temp(fsm_t* this) {
 	LCD1602Display__set_cursor(display, 0, 1);
 	if (((SystemContext*) this->user_data)->sensor_values[0].type != is_error) {
 		LCD1602Display__print(display, "Temp: %.1f ", t_val);
+		int degrees_symbol = 0b11011111;
+		LCD1602Display__write(display, degrees_symbol);
+		LCD1602Display__print(display, "C");
 	} else {
 		LCD1602Display__print(display, "Temp: Error");
 	}
-
-
-	int degrees_symbol = 0b11011111;
-	LCD1602Display__write(display, degrees_symbol);
-	LCD1602Display__print(display, "C");
 
 	piLock(OUTPUT_LOCK);
 	output_flags &= ~(FLAG_NEXT_DISPLAY_INFO);

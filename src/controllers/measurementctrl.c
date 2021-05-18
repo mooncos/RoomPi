@@ -146,7 +146,7 @@ static void _measurement_do_processing(fsm_t *this) {
 
 	SystemContext *this_system = (SystemContext*) this->user_data;
 	// iterate for each sensor
-	for (int i = 0; sizeof(this_system->sensor_storage) / sizeof(CircularBuffer); i++) {
+	for (int i = 0; i < sizeof(this_system->sensor_storage) / sizeof(CircularBuffer); i++) {
 		SensorValueType tmp[5];
 
 		piLock(STORAGE_LOCK);
@@ -162,7 +162,7 @@ static void _measurement_do_processing(fsm_t *this) {
 
 		int iters = 0;
 
-		for (int j = 0; sizeof(tmp) / sizeof(SensorValueType); j++) {
+		for (int j = 0; j < sizeof(tmp) / sizeof(SensorValueType); j++) {
 			if (j != h_idx && j != l_idx && tmp[j].type != is_error) {
 				switch (type) {
 				case is_int:
@@ -218,7 +218,7 @@ static void _measurement_do_database_update(fsm_t *this) {
 
 	SystemContext *this_system = (SystemContext*) this->user_data;
 	// iterate for each sensor
-	for (int i = 0; sizeof(this_system->sensor_values) / sizeof(SensorValueType); i++) {
+	for (int i = 0; i < sizeof(this_system->sensor_values) / sizeof(SensorValueType); i++) {
 		// upload to db
 	}
 }

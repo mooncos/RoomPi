@@ -35,7 +35,7 @@ SystemType* systemSetup(void) {
 
 	// CCS811 CO2 sensor Creation and Setup
 	printf("[LOG-CCS811Sensor]  CCS811Sensor is being initialized and set up...\n");
-	CCS811Sensor *ccs_sensor = CCS811Sensor__create(5, 0x52, 17, 18, 19);
+	CCS811Sensor *ccs_sensor = CCS811Sensor__create(5, CCS811_ADDR_HIGH, 17, 18, 19);
 
 	/* Creation of the attached actuators */
 
@@ -48,7 +48,7 @@ SystemType* systemSetup(void) {
 	int color_pins[] = { 0b00000011, 0b00011100, 0b11100000 };
 	StatusLEDOutput *leds_actuator = StatusLEDOutput__create(3, 1, 25, 24, 23, color_pins);
 	StatusLEDOutput__set_all_high(leds_actuator);
-	delay(5000);
+	//delay(5000);
 
 	// LCD1602 Character display creation and setup
 	printf("[LOG-LCD1602Display] LCD1602Display Actuator is being initialized and set up...\n");
@@ -122,10 +122,12 @@ int main(int argc, char **argv) {
 
 	while (1) {
 		fsm_fire(roompi_system->root_measurement_ctrl->fsm);
+		fsm_fire(roompi_system->root_system->sensor_temp_humid->fsm);
+		fsm_fire(roompi_system->root_system->sensor_light->fsm);
+		fsm_fire(roompi_system->root_system->sensor_co2->fsm);
 		fsm_fire(roompi_system->root_output_ctrl->fsm_buzzer);
 		fsm_fire(roompi_system->root_output_ctrl->fsm_leds);
 		fsm_fire(roompi_system->root_output_ctrl->fsm_info);
-		// salta el timer
 		fsm_fire(roompi_system->root_output_ctrl->fsm_warnings);
 	}
 
