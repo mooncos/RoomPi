@@ -35,7 +35,7 @@ SystemType* systemSetup(void) {
 
 	// CCS811 CO2 sensor Creation and Setup
 	printf("[LOG-CCS811Sensor]  CCS811Sensor is being initialized and set up...\n");
-	CCS811Sensor *ccs_sensor = CCS811Sensor__create(5, CCS811_ADDR_HIGH, 17, 18, 19);
+	CCS811Sensor *ccs_sensor = CCS811Sensor__create(5, CCS811_ADDR_HIGH, 0, 3, 2);
 
 	/* Creation of the attached actuators */
 

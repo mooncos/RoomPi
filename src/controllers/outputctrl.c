@@ -312,7 +312,12 @@ static void _show_info_temp(fsm_t* this) {
 		LCD1602Display__write(display, degrees_symbol);
 		LCD1602Display__print(display, "C");
 	} else {
-		LCD1602Display__print(display, "Temp: Error");
+		if (((SystemContext*) this->user_data)->sensor_values[0].val.ival == -99) {
+			LCD1602Display__write(display, 0);
+			LCD1602Display__print(display, " Calibrando...");
+		} else {
+			LCD1602Display__print(display, "Temp: Error");
+		}
 	}
 
 	piLock(OUTPUT_LOCK);
@@ -330,7 +335,12 @@ static void _show_info_humid(fsm_t* this) {
 	if (((SystemContext*) this->user_data)->sensor_values[1].type != is_error) {
 		LCD1602Display__print(display, "Humidity: %.1f%%", rh_val);
 	} else {
-		LCD1602Display__print(display, "Humidity: Error");
+		if (((SystemContext*) this->user_data)->sensor_values[0].val.ival == -99) {
+			LCD1602Display__write(display, 0);
+			LCD1602Display__print(display, " Calibrando...");
+		} else {
+			LCD1602Display__print(display, "Humidity: Error");
+		}
 	}
 
 	piLock(OUTPUT_LOCK);
@@ -348,7 +358,12 @@ static void _show_info_light(fsm_t* this) {
 	if (((SystemContext*) this->user_data)->sensor_values[2].type != is_error) {
 		LCD1602Display__print(display, "Light: %d lx", l_val);
 	} else {
-		LCD1602Display__print(display, "Light: Error");
+		if (((SystemContext*) this->user_data)->sensor_values[0].val.ival == -99) {
+			LCD1602Display__write(display, 0);
+			LCD1602Display__print(display, " Calibrando...");
+		} else {
+			LCD1602Display__print(display, "Light: Error");
+		}
 	}
 
 	piLock(OUTPUT_LOCK);
@@ -366,7 +381,12 @@ static void _show_info_co2(fsm_t* this){
 	if (((SystemContext*) this->user_data)->sensor_values[3].type != is_error) {
 		LCD1602Display__print(display, "CO2: %d ppm", eco2_val);
 	} else {
-		LCD1602Display__print(display, "CO2: Error");
+		if (((SystemContext*) this->user_data)->sensor_values[0].val.ival == -99) {
+			LCD1602Display__write(display, 0);
+			LCD1602Display__print(display, " Calibrando...");
+		} else {
+			LCD1602Display__print(display, "CO2: Error");
+		}
 	}
 
 	piLock(OUTPUT_LOCK);
@@ -435,7 +455,7 @@ static void _show_warning_co2(fsm_t* this) {
 	LCD1602Display__set_cursor(display, 0, 0);
 	LCD1602Display__print(display, "                ");
 	LCD1602Display__set_cursor(display, 0, 0);
-	LCD1602Display__write(display, 7);
+	LCD1602Display__write(display, 3);
 	LCD1602Display__print(display, " AVISO CO2");
 
 	piLock(OUTPUT_LOCK);

@@ -14,6 +14,7 @@ SystemContext* SystemContext__create(int id_classroom,
 		LCD1602Display *actuator_display, BuzzerOutput *actuator_buzzer,
 		StatusLEDOutput *actuator_leds) {
 	SystemContext *result = (SystemContext*) malloc(sizeof(SystemContext));
+
 	result->id_classroom = id_classroom;
 	result->sensor_temp_humid = sensor_temp_humid;
 	result->sensor_light = sensor_light;
@@ -28,7 +29,7 @@ SystemContext* SystemContext__create(int id_classroom,
 	}
 
 	for (int i = 0; i < sizeof(result->sensor_values) / sizeof(SensorValueType); i++) {
-		SensorValueType aux = {.type = is_error };
+		SensorValueType aux = {.type = is_error, .val.ival = -99 };
 		result->sensor_values[i] = aux;
 	}
 
