@@ -7,6 +7,7 @@
 
 #include <stdlib.h>
 #include <wiringPi.h>
+#include <curl/curl.h>
 
 #include "measurementctrl.h"
 #include "../libs/threadlib.h"
@@ -294,7 +295,7 @@ static void _co2_do_alerts(SystemContext *this) {
 	piUnlock(MEASUREMENT_LOCK);
 
 	if (this->sensor_values[3].type != is_error) {
-		if (eco2_val > 1000) {
+		if (eco2_val > 2000) {
 			piLock(MEASUREMENT_LOCK);
 			measurement_flags |= FLAG_CO2_ANOMALY;
 			piUnlock(MEASUREMENT_LOCK);

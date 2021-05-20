@@ -22,11 +22,11 @@
 #define MODE3_EACH_60S 0b011
 #define MODE4_EACH_250MS 0b100
 
-#ifdef DEBUG
-#define  DEBUG(fmt, ...)  printf(fmt, __VA_ARGS__)
-#else
+//#ifdef DEB
+//#define  DEBUG(...)  fprintf( stderr, __VA_ARGS__ )
+//#else
 #define DEBUG(fmt, ...)   do {} while (0)
-#endif
+//#endif
 
 #define CCS811_ADDR_HIGH    0x5b    ///< Pin Addr is high: sets address to 0x5b
 #define CCS811_ADDR_LOW     0x5a    ///< Pin Addr is low: sets address to 0x5a

@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <wiringPi.h>
 
+#define DEB
+
 volatile int measurement_flags = 0x00;
 volatile int output_flags = 0x00;
 
@@ -35,7 +37,19 @@ SystemType* systemSetup(void) {
 
 	// CCS811 CO2 sensor Creation and Setup
 	printf("[LOG-CCS811Sensor]  CCS811Sensor is being initialized and set up...\n");
-	CCS811Sensor *ccs_sensor = CCS811Sensor__create(5, CCS811_ADDR_HIGH, 0, 3, 2);
+	CCS811Sensor *ccs_sensor = CCS811Sensor__create(5, CCS811_ADDR_LOW, 0, 3, 2);
+
+	CCS811Sensor__connect(ccs_sensor);
+
+	union ApplicationRegister appreg1 = ccs_sensor->app_register;
+	appreg1.meas_mode.reserved2 = 0;             //We dont know what reserved bits do, so let's put them zero
+	appreg1.meas_mode.reserved1 = 0;             //We dont know what reserved bits do, so let's put them zero
+	appreg1.meas_mode.driveMode = MODE1_EACH_1S; //Lets select the operation mode: MODE0_IDLE MODE1_EACH_1S MODE2_EACH_10S MODE3_EACH_60S MODE4_EACH_250MS
+	appreg1.meas_mode.int_data_ready = 1;        //Lets enable the interrupt pin after we have a valid data
+	appreg1.meas_mode.int_thresh = 0;            //We are going to disable the interrupts for thresholds
+
+	CCS811Sensor__set_app_register(ccs_sensor, appreg1);
+	CCS811Sensor__write_register(ccs_sensor, MEAS_MODE);
 
 	/* Creation of the attached actuators */
 
@@ -103,7 +117,7 @@ int main(int argc, char **argv) {
 	// si pulso boton activa measurement processing
 	// si pulso este otro boton activa next display
 
-	tmr_startms(roompi_system->root_measurement_ctrl->timer, 60000);
+	tmr_startms(roompi_system->root_measurement_ctrl->timer, 30000);
 	tmr_startms(roompi_system->root_system->sensor_temp_humid->timer, 5000); // fire temp humid fsm every 5 seconds
 	tmr_startms(roompi_system->root_system->sensor_light->timer, 5000); // fire light fsm every 5 seconds
 	tmr_startms(roompi_system->root_system->sensor_co2->timer, 5000);  // fire co2 fsm every 5 seconds
