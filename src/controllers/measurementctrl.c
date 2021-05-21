@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <wiringPi.h>
 #include <curl/curl.h>
+#include <string.h>
 
 #include "measurementctrl.h"
 #include "../libs/threadlib.h"
@@ -35,12 +36,8 @@ static void _measurement_do_alerts(fsm_t *this);
 static void _measurement_do_database_update(fsm_t *this);
 
 // { EstadoOrigen, CondicionDeDisparo, EstadoFinal, AccionesSiTransicion }
-static fsm_trans_t _measurement_fsm_tt[] = {
-		{ MEASUREMENT_PROCESS, _measurement_pending_processing, GENERATE_ALERTS, _measurement_do_processing },
-		{ GENERATE_ALERTS, _measurement_processing_finished, DB_UPDATE, _measurement_do_alerts },
-		{ DB_UPDATE, _measurement_alerts_finished, MEASUREMENT_PROCESS, _measurement_do_database_update },
-		{ -1, NULL, -1, NULL }
-};
+static fsm_trans_t _measurement_fsm_tt[] = { { MEASUREMENT_PROCESS, _measurement_pending_processing, GENERATE_ALERTS, _measurement_do_processing }, { GENERATE_ALERTS, _measurement_processing_finished,
+		DB_UPDATE, _measurement_do_alerts }, { DB_UPDATE, _measurement_alerts_finished, MEASUREMENT_PROCESS, _measurement_do_database_update }, { -1, NULL, -1, NULL } };
 
 MeasurementCtrl* MeasurementCtrl__setup(SystemContext *this_system) {
 	MeasurementCtrl *result = (MeasurementCtrl*) malloc(sizeof(MeasurementCtrl));
@@ -218,9 +215,45 @@ static void _measurement_do_database_update(fsm_t *this) {
 	piUnlock(MEASUREMENT_LOCK);
 
 	SystemContext *this_system = (SystemContext*) this->user_data;
+
+	char sensor_meas_name[4][6] = { "temp", "rh", "lux", "eco2" };
+
 	// iterate for each sensor
 	for (int i = 0; i < sizeof(this_system->sensor_values) / sizeof(SensorValueType); i++) {
-		// upload to db
+		if (this_system->sensor_values[i].type != is_error) {
+			char data[100];
+
+			switch (this_system->sensor_values[i].type) {
+			case is_int:
+				sprintf(data, "%s value=%d", sensor_meas_name[i], this_system->sensor_values[i].val.ival);
+				break;
+			case is_float:
+				sprintf(data, "%s value=%f", sensor_meas_name[i], this_system->sensor_values[i].val.fval);
+				break;
+			default:
+				break;
+			}
+
+			CURL *hnd;
+
+			hnd = curl_easy_init();
+			curl_easy_setopt(hnd, CURLOPT_BUFFERSIZE, 102400L);
+			curl_easy_setopt(hnd, CURLOPT_URL, "http://localhost:8086/write?db=db0");
+			curl_easy_setopt(hnd, CURLOPT_NOPROGRESS, 1L);
+			curl_easy_setopt(hnd, CURLOPT_POSTFIELDS, data);
+			curl_easy_setopt(hnd, CURLOPT_POSTFIELDSIZE_LARGE, (curl_off_t ) strlen(data));
+			curl_easy_setopt(hnd, CURLOPT_USERAGENT, "curl/roompisys/7.77.0-DEV");
+			curl_easy_setopt(hnd, CURLOPT_MAXREDIRS, 50L);
+			curl_easy_setopt(hnd, CURLOPT_HTTP_VERSION, (long )CURL_HTTP_VERSION_2_0);
+			curl_easy_setopt(hnd, CURLOPT_CUSTOMREQUEST, "POST");
+			curl_easy_setopt(hnd, CURLOPT_FTP_SKIP_PASV_IP, 1L);
+			curl_easy_setopt(hnd, CURLOPT_TCP_KEEPALIVE, 1L);
+
+			curl_easy_perform(hnd);
+
+			curl_easy_cleanup(hnd);
+			hnd = NULL;
+		}
 	}
 }
 
@@ -232,30 +265,32 @@ static void _temp_humid_do_alerts(SystemContext *this) {
 	measurement_flags &= ~(FLAG_TEMP_ANOMALY | FLAG_TEMP_EMERGENCY | FLAG_HUMID_ANOMALY | FLAG_HUMID_EMERGENCY); // assume there are no abnormal values
 	piUnlock(MEASUREMENT_LOCK);
 
-	if (this->sensor_values[0].type != is_error) {
+	extern float temp_warn_low, temp_warn_high, rh_warn_low, rh_warn_high, temp_crit_low, temp_crit_high, rh_crit_low, rh_crit_high;
+
+	if (this->sensor_values[0].type != is_error && this->sensor_values[1].type != is_error) {
 		// if there is an abnormal temperature value
-		if (t_val < 18.0 || t_val > 28.0) {
+		if (t_val < temp_warn_low || t_val > temp_warn_high) {
 			piLock(MEASUREMENT_LOCK);
 			measurement_flags |= FLAG_TEMP_ANOMALY;
 			piUnlock(MEASUREMENT_LOCK);
 		}
 
 		// if there is an abnormal humidity value
-		if (rh_val < 30.0 || rh_val > 70.0) {
+		if (rh_val < rh_warn_low || rh_val > rh_warn_high) {
 			piLock(MEASUREMENT_LOCK);
 			measurement_flags |= FLAG_HUMID_ANOMALY;
 			piUnlock(MEASUREMENT_LOCK);
 		}
 
 		// if there is a critical temperature value
-		if (t_val < 5.0 || t_val > 33.0) {
+		if (t_val < temp_crit_low || t_val > temp_crit_high) {
 			piLock(MEASUREMENT_LOCK);
 			measurement_flags |= FLAG_TEMP_EMERGENCY;
 			piUnlock(MEASUREMENT_LOCK);
 		}
 
 		// if there is an critical humidity value
-		if (rh_val < 10.0 || rh_val > 82.0) {
+		if (rh_val < rh_crit_low || rh_val > rh_crit_high) {
 			piLock(MEASUREMENT_LOCK);
 			measurement_flags |= FLAG_HUMID_EMERGENCY;
 			piUnlock(MEASUREMENT_LOCK);
@@ -270,16 +305,18 @@ static void _light_do_alerts(SystemContext *this) {
 	measurement_flags &= ~(FLAG_LIGHT_ANOMALY | FLAG_LIGHT_EMERGENCY); // assume there are no abnormal values
 	piUnlock(MEASUREMENT_LOCK);
 
+	extern int lux_warn, lux_crit;
+
 	if (this->sensor_values[2].type != is_error) {
 		// if there is an abnormal light value
-		if (l_val < 350) {
+		if (l_val < lux_warn) {
 			piLock(MEASUREMENT_LOCK);
 			measurement_flags |= FLAG_LIGHT_ANOMALY;
 			piUnlock(MEASUREMENT_LOCK);
 		}
 
 		// if there is a critical light value
-		if (l_val < 150) {
+		if (l_val < lux_crit) {
 			piLock(MEASUREMENT_LOCK);
 			measurement_flags |= FLAG_LIGHT_EMERGENCY;
 			piUnlock(MEASUREMENT_LOCK);
@@ -294,13 +331,15 @@ static void _co2_do_alerts(SystemContext *this) {
 	measurement_flags &= ~(FLAG_CO2_ANOMALY | FLAG_CO2_EMERGENCY); // assume there are no abnormal values
 	piUnlock(MEASUREMENT_LOCK);
 
+	extern int eco2_warn, eco2_crit;
+
 	if (this->sensor_values[3].type != is_error) {
-		if (eco2_val > 2000) {
+		if (eco2_val > eco2_warn) {
 			piLock(MEASUREMENT_LOCK);
 			measurement_flags |= FLAG_CO2_ANOMALY;
 			piUnlock(MEASUREMENT_LOCK);
 		}
-		if (eco2_val > 4000) {
+		if (eco2_val > eco2_crit) {
 			piLock(MEASUREMENT_LOCK);
 			measurement_flags |= FLAG_CO2_EMERGENCY;
 			piUnlock(MEASUREMENT_LOCK);

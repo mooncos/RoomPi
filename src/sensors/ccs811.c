@@ -370,33 +370,34 @@ static void _co2_do_measurement(fsm_t *this) {
 	SensorValueType rh_value = roompi_system->root_system->sensor_values[1];
 
 	if (t_value.type != is_error && rh_value.type != is_error) { //no se si se puede hacer esto porque ahora esto es controlado por master y quizas aunque siga el flag de pending activo ya tenemos medida quw poder usar
-		CCS811Sensor__set_environment_data(ccs, t_value.val.fval, rh_value.val.fval);
+		//CCS811Sensor__set_environment_data(ccs, t_value.val.fval, rh_value.val.fval);
 	} else {
-		CCS811Sensor__set_environment_data(ccs, 25.0, 50.0);
+		//CCS811Sensor__set_environment_data(ccs, 25.0, 50.0);
 	}
 
 	// check if co2 measurement available, if not nothing happens
-	CCS811Sensor__read_register(ccs, ALG_RESULT_DATA);
-	int eco2 = ccs->app_register.alg_result_data.eco2;
-	int err = ccs->app_register.status.error; // No error: 0, Error: 1
-	SensorValueType res_co2_val; // craft SensorValueType instance with type Integer and value measured co2 or error
+		delay(200);
+		CCS811Sensor__read_register(ccs, ALG_RESULT_DATA);
+		int eco2 = ccs->app_register.alg_result_data.eco2;
+		int err = ccs->app_register.status.error; // No error: 0, Error: 1
+		SensorValueType res_co2_val; // craft SensorValueType instance with type Integer and value measured co2 or error
 
-	if (eco2 == 0)
-		err = 1;
-	if (err > 0) {
-		// we have an error
-		res_co2_val.type = is_error;
-		res_co2_val.val.ival = 0;
-	} else {
-		res_co2_val.type = is_int;
-		res_co2_val.val.ival = eco2;
+		if (eco2 == 0)
+			err = 1;
+		if (err > 0) {
+			// we have an error
+			res_co2_val.type = is_error;
+			res_co2_val.val.ival = 0;
+		} else {
+			res_co2_val.type = is_int;
+			res_co2_val.val.ival = eco2;
+		}
+
+		piLock(STORAGE_LOCK);
+		CircularBufferPush(roompi_system->root_system->sensor_storage[3], &res_co2_val, sizeof(res_co2_val)); // co2 circular buffer is at index 2 of the table
+		piUnlock(STORAGE_LOCK);
+
+		piLock(MEASUREMENT_LOCK);
+		measurement_flags &= ~(FLAG_CO2_PENDING_MEASUREMENT);
+		piUnlock(MEASUREMENT_LOCK);
 	}
-
-	piLock(STORAGE_LOCK);
-	CircularBufferPush(roompi_system->root_system->sensor_storage[3], &res_co2_val, sizeof(res_co2_val)); // co2 circular buffer is at index 2 of the table
-	piUnlock(STORAGE_LOCK);
-
-	piLock(MEASUREMENT_LOCK);
-	measurement_flags &= ~(FLAG_CO2_PENDING_MEASUREMENT);
-	piUnlock(MEASUREMENT_LOCK);
-}

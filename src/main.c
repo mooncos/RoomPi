@@ -6,12 +6,34 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <wiringPi.h>
 
 #define DEB
 
 volatile int measurement_flags = 0x00;
 volatile int output_flags = 0x00;
+
+float temp_crit_low = 5.0;
+float temp_crit_high = 33.0;
+float temp_warn_low = 18.0;
+float temp_warn_high = 28.0;
+float rh_crit_low = 10.0;
+float rh_crit_high = 82.0;
+float rh_warn_low = 30.0;
+float rh_warn_high = 70.0;
+int lux_crit = 150;
+int lux_warn = 350;
+int eco2_crit = 4000;
+int eco2_warn = 2000;
+int meas_t_ms = 30000;
+int dht_t_ms = 5000;
+int bh1750_t_ms = 5000;
+int ccs811_t_ms = 5000;
+int output_t_ms = 5000;
+
+volatile int buzzer_disabled = 0x0;
 
 #include "libs/systemlib.h"
 #include "libs/systemtype.h"
@@ -89,11 +111,10 @@ SystemType* systemSetup(void) {
 
 	LCD1602Display__clear(lcd_actuator);
 	LCD1602Display__set_cursor(lcd_actuator, 0, 0);
-	LCD1602Display__print(lcd_actuator, "roomPi      v4.0");
+	LCD1602Display__print(lcd_actuator, "roomPi      v7.0");
 	LCD1602Display__set_cursor(lcd_actuator, 0, 1);
 	LCD1602Display__write(lcd_actuator, 0);
 	LCD1602Display__print(lcd_actuator, " Iniciando...");
-
 
 	// System Context creation and initialization
 	printf("[LOG] System is starting...\n");
@@ -114,23 +135,125 @@ SystemType* systemSetup(void) {
 int main(int argc, char **argv) {
 	roompi_system = systemSetup();
 
+	// load system config options
+	FILE *fp = fopen("roompi.conf", "r");
+	if (fp != NULL) {
+		char chunk[64];
+		char parsed[8];
+
+		for (int i = 0; i < 18; i++) {
+			if (fgets(chunk, sizeof(chunk), fp) != NULL) {
+				char *cp = strrchr(chunk, ' ');
+				if (cp && *(cp + 1)) {
+					sprintf(parsed, "%s", cp + 1);
+					switch (i) {
+					case 0:
+						break;
+					case 1:
+						temp_crit_low = atof(parsed);
+						break;
+					case 2:
+						temp_crit_high = atof(parsed);
+						break;
+					case 3:
+						temp_warn_low = atof(parsed);
+						break;
+					case 4:
+						temp_warn_high = atof(parsed);
+						break;
+					case 5:
+						rh_crit_low = atof(parsed);
+						break;
+					case 6:
+						rh_crit_high = atof(parsed);
+						break;
+					case 7:
+						rh_warn_low = atof(parsed);
+						break;
+					case 8:
+						rh_warn_high = atof(parsed);
+						break;
+					case 9:
+						lux_crit = atoi(parsed);
+						break;
+					case 10:
+						lux_warn = atoi(parsed);
+						break;
+					case 11:
+						eco2_crit = atoi(parsed);
+						break;
+					case 12:
+						eco2_warn = atoi(parsed);
+						break;
+					case 13:
+						meas_t_ms = atoi(parsed);
+						break;
+					case 14:
+						dht_t_ms = atoi(parsed);
+						break;
+					case 15:
+						bh1750_t_ms = atoi(parsed);
+						break;
+					case 16:
+						ccs811_t_ms = atoi(parsed);
+						break;
+					case 17:
+						output_t_ms = atoi(parsed);
+						break;
+					default:
+						break;
+					}
+				}
+			}
+		}
+	}
+
 	// si pulso boton activa measurement processing
 	// si pulso este otro boton activa next display
 
-	tmr_startms(roompi_system->root_measurement_ctrl->timer, 30000);
-	tmr_startms(roompi_system->root_system->sensor_temp_humid->timer, 5000); // fire temp humid fsm every 5 seconds
-	tmr_startms(roompi_system->root_system->sensor_light->timer, 5000); // fire light fsm every 5 seconds
-	tmr_startms(roompi_system->root_system->sensor_co2->timer, 5000);  // fire co2 fsm every 5 seconds
+	int button_pins[3] = { 22, 21, 30 }; // button pin nos from left to right button on the board
 
+	// set pullup on button pins
+	for (int i = 0; i < 3; i++) {
+		pullUpDnControl(button_pins[i], PUD_UP);
+		pinMode(button_pins[i], INPUT);
+	}
+
+	// define buttons ISRs
+	void _force_meas_processing_isr() {
+		measurement_flags |= FLAG_PERFORM_PROCESSING;
+	}
+
+	void _force_next_display_isr() {
+		measurement_flags |= FLAG_NEXT_DISPLAY_INFO;
+		fsm_fire(roompi_system->root_output_ctrl->fsm_info);
+	}
+
+	void _toggle_buzzer_isr() {
+		buzzer_disabled ^= 0x1;
+		if(!(measurement_flags & (FLAG_TEMP_EMERGENCY | FLAG_HUMID_EMERGENCY | FLAG_LIGHT_EMERGENCY | FLAG_CO2_EMERGENCY))){
+			BuzzerOutput__disable(roompi_system->root_system->actuator_buzzer);
+		} else {
+			BuzzerOutput__toggle(roompi_system->root_system->actuator_buzzer);
+		}
+	}
+
+	// ISRs setup
+	wiringPiISR(button_pins[0], INT_EDGE_FALLING, _force_meas_processing_isr);
+	wiringPiISR(button_pins[1], INT_EDGE_FALLING, _force_next_display_isr);
+	wiringPiISR(button_pins[2], INT_EDGE_FALLING, _toggle_buzzer_isr);
+
+	tmr_startms(roompi_system->root_measurement_ctrl->timer, meas_t_ms);
+	tmr_startms(roompi_system->root_system->sensor_temp_humid->timer, dht_t_ms); // fire temp humid fsm every 5 seconds
+	tmr_startms(roompi_system->root_system->sensor_light->timer, bh1750_t_ms); // fire light fsm every 5 seconds
+	tmr_startms(roompi_system->root_system->sensor_co2->timer, ccs811_t_ms);  // fire co2 fsm every 5 seconds
 
 	// Output system timer
-	tmr_startms(roompi_system->root_output_ctrl->timer, 5000);
+	tmr_startms(roompi_system->root_output_ctrl->timer, output_t_ms);
 
-	//output_flags |= FLAG_NEXT_DISPLAY;
 	measurement_flags |= FLAG_LIGHT_PENDING_MEASUREMENT;
 	measurement_flags |= FLAG_TEMP_HUMID_PENDING_MEASUREMENT;
 	measurement_flags |= FLAG_CO2_PENDING_MEASUREMENT;
-
 
 	StatusLEDOutput__set_color(roompi_system->root_system->actuator_leds, GREEN);
 

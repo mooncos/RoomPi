@@ -84,13 +84,13 @@ static int _co2_anomaly(fsm_t *this); //  co2 sensor anomaly
 //static int _temp_anomaly_and_next_display(fsm_t* this) {
 //	return (_temp_anomaly(this) && _next_display(this));
 //}
-static int _humid_anomaly_and_next_display_warning(fsm_t* this) {
+static int _humid_anomaly_and_next_display_warning(fsm_t *this) {
 	return (_humid_anomaly(this) && _next_display_warning(this));
 }
-static int _light_anomaly_and_next_display_warning(fsm_t* this) {
+static int _light_anomaly_and_next_display_warning(fsm_t *this) {
 	return (_light_anomaly(this) && _next_display_warning(this));
 }
-static int _co2_anomaly_and_next_display_warning(fsm_t* this) {
+static int _co2_anomaly_and_next_display_warning(fsm_t *this) {
 	return (_co2_anomaly(this) && _next_display_warning(this));
 }
 //static int _not_temp_anomaly_and_next_display(fsm_t* this) {
@@ -111,77 +111,51 @@ static void _set_yellow_leds(fsm_t *this);
 static void _set_red_leds(fsm_t *this);
 
 // FSM display info (bottom row)
-static void _show_info_hour(fsm_t* this);
-static void _show_info_temp(fsm_t* this);
-static void _show_info_humid(fsm_t* this);
-static void _show_info_light(fsm_t* this);
-static void _show_info_co2(fsm_t* this);
+static void _show_info_hour(fsm_t *this);
+static void _show_info_temp(fsm_t *this);
+static void _show_info_humid(fsm_t *this);
+static void _show_info_light(fsm_t *this);
+static void _show_info_co2(fsm_t *this);
 
 // FSM display warning (top row)
-static void _show_warning_none(fsm_t* this);
-static void _show_warning_temp(fsm_t* this);
-static void _show_warning_humid(fsm_t* this);
-static void _show_warning_light(fsm_t* this);
-static void _show_warning_co2(fsm_t* this);
+static void _show_warning_none(fsm_t *this);
+static void _show_warning_temp(fsm_t *this);
+static void _show_warning_humid(fsm_t *this);
+static void _show_warning_light(fsm_t *this);
+static void _show_warning_co2(fsm_t *this);
 
+static fsm_trans_t _buzzer_fsm_tt[] = { { OFF, _general_emergency, ON, _buzzer_on }, { ON, _not_general_emergency, OFF, _buzzer_off }, { -1, NULL, -1, NULL } };
 
-static fsm_trans_t _buzzer_fsm_tt[] = {
-		{ OFF, _general_emergency, ON, _buzzer_on},
-		{ ON, _not_general_emergency, OFF, _buzzer_off},
-		{-1, NULL, -1, NULL}
-};
+static fsm_trans_t _leds_fsm_tt[] = { { NORMAL, _general_anomaly, ANOMALY, _set_yellow_leds }, { ANOMALY, _general_emergency, EMERGENCY, _set_red_leds }, { EMERGENCY, _not_general_emergency, ANOMALY,
+		_set_yellow_leds }, { ANOMALY, _not_general_anomaly, NORMAL, _set_green_leds }, { -1, NULL, -1, NULL } };
 
-static fsm_trans_t _leds_fsm_tt[] = {
-		{ NORMAL, _general_anomaly, ANOMALY, _set_yellow_leds },
-		{ ANOMALY, _general_emergency, EMERGENCY, _set_red_leds },
-		{ EMERGENCY, _not_general_emergency, ANOMALY, _set_yellow_leds },
-		{ ANOMALY, _not_general_anomaly, NORMAL, _set_green_leds },
-		{-1, NULL, -1, NULL}
-};
+static fsm_trans_t _info_fsm_tt[] = { { HOUR_INFO, _next_display_info, TEMPERATURE_INFO, _show_info_temp }, { TEMPERATURE_INFO, _next_display_info, HUMIDITY_INFO, _show_info_humid }, { HUMIDITY_INFO,
+		_next_display_info, LIGHT_INFO, _show_info_light }, { LIGHT_INFO, _next_display_info, CO2_INFO, _show_info_co2 }, { CO2_INFO, _next_display_info, HOUR_INFO, _show_info_hour }, { -1, NULL, -1,
+		NULL } };
 
-static fsm_trans_t _info_fsm_tt[] = {
-		{ HOUR_INFO, _next_display_info, TEMPERATURE_INFO, _show_info_temp },
-		{ TEMPERATURE_INFO, _next_display_info, HUMIDITY_INFO, _show_info_humid },
-		{ HUMIDITY_INFO, _next_display_info, LIGHT_INFO, _show_info_light },
-		{ LIGHT_INFO, _next_display_info, CO2_INFO, _show_info_co2 },
-		{ CO2_INFO, _next_display_info, HOUR_INFO, _show_info_hour },
-		{-1, NULL, -1, NULL}
-};
+static fsm_trans_t _warning_fsm_tt[] = { { NO_WARNING, _not_general_anomaly_and_next_display_warning, NO_WARNING, _show_warning_none }, { NO_WARNING, _temp_anomaly, TEMPERATURE_WARNING,
+		_show_warning_temp }, { NO_WARNING, _humid_anomaly, HUMIDITY_WARNING, _show_warning_humid }, { NO_WARNING, _light_anomaly, LIGHT_WARNING, _show_warning_light }, { NO_WARNING, _co2_anomaly,
+		CO2_WARNING, _show_warning_co2 }, { TEMPERATURE_WARNING, _humid_anomaly_and_next_display_warning, HUMIDITY_WARNING, _show_warning_humid }, { TEMPERATURE_WARNING,
+		_light_anomaly_and_next_display_warning, LIGHT_WARNING, _show_warning_light }, { TEMPERATURE_WARNING, _co2_anomaly_and_next_display_warning, CO2_WARNING, _show_warning_co2 }, {
+		HUMIDITY_WARNING, _light_anomaly_and_next_display_warning, LIGHT_WARNING, _show_warning_light }, { HUMIDITY_WARNING, _co2_anomaly_and_next_display_warning, CO2_WARNING, _show_warning_co2 }, {
+		LIGHT_WARNING, _co2_anomaly_and_next_display_warning, CO2_WARNING, _show_warning_co2 }, { TEMPERATURE_WARNING, _next_display_warning, NO_WARNING, NULL }, { HUMIDITY_WARNING,
+		_next_display_warning, NO_WARNING, NULL }, { LIGHT_WARNING, _next_display_warning, NO_WARNING, NULL }, { CO2_WARNING, _next_display_warning, NO_WARNING, NULL }, { -1, NULL, -1, NULL } };
 
-static fsm_trans_t _warning_fsm_tt[] = {
-		{ NO_WARNING, _not_general_anomaly_and_next_display_warning, NO_WARNING, _show_warning_none },
-		{ NO_WARNING, _temp_anomaly, TEMPERATURE_WARNING, _show_warning_temp },
-		{ NO_WARNING, _humid_anomaly, HUMIDITY_WARNING, _show_warning_humid },
-		{ NO_WARNING, _light_anomaly, LIGHT_WARNING, _show_warning_light },
-		{ NO_WARNING, _co2_anomaly, CO2_WARNING, _show_warning_co2 },
-		{ TEMPERATURE_WARNING, _humid_anomaly_and_next_display_warning, HUMIDITY_WARNING, _show_warning_humid },
-		{ TEMPERATURE_WARNING, _light_anomaly_and_next_display_warning, LIGHT_WARNING, _show_warning_light },
-		{ TEMPERATURE_WARNING, _co2_anomaly_and_next_display_warning, CO2_WARNING, _show_warning_co2 },
-		{ HUMIDITY_WARNING, _light_anomaly_and_next_display_warning, LIGHT_WARNING, _show_warning_light },
-		{ HUMIDITY_WARNING, _co2_anomaly_and_next_display_warning, CO2_WARNING, _show_warning_co2 },
-		{ LIGHT_WARNING, _co2_anomaly_and_next_display_warning, CO2_WARNING, _show_warning_co2 },
-		{ TEMPERATURE_WARNING, _next_display_warning, NO_WARNING, NULL },
-		{ HUMIDITY_WARNING, _next_display_warning, NO_WARNING, NULL },
-		{ LIGHT_WARNING, _next_display_warning, NO_WARNING, NULL },
-		{ CO2_WARNING, _next_display_warning, NO_WARNING, NULL },
-		{-1, NULL, -1, NULL}
-};
-
-OutputCtrl* OutputCtrl__setup(SystemContext* this_system) {
+OutputCtrl* OutputCtrl__setup(SystemContext *this_system) {
 	OutputCtrl *result = (OutputCtrl*) malloc(sizeof(OutputCtrl));
 	tmr_t *output_timer = tmr_new(_output_timer_isr); // creado pero no iniciado
 	result->timer = output_timer;
 
-	result->fsm_buzzer = (fsm_t *) fsm_new(OFF, _buzzer_fsm_tt, this_system);
-	result->fsm_leds = (fsm_t *) fsm_new(NORMAL, _leds_fsm_tt, this_system);
-	result->fsm_info = (fsm_t *) fsm_new(HOUR_INFO, _info_fsm_tt, this_system);
-	result->fsm_warnings = (fsm_t *) fsm_new(NO_WARNING, _warning_fsm_tt, this_system);
+	result->fsm_buzzer = (fsm_t*) fsm_new(OFF, _buzzer_fsm_tt, this_system);
+	result->fsm_leds = (fsm_t*) fsm_new(NORMAL, _leds_fsm_tt, this_system);
+	result->fsm_info = (fsm_t*) fsm_new(HOUR_INFO, _info_fsm_tt, this_system);
+	result->fsm_warnings = (fsm_t*) fsm_new(NO_WARNING, _warning_fsm_tt, this_system);
 
 	return result;
 }
 
-void OutputCtrl__destroy(OutputCtrl * this) {
-	if (this)  {
+void OutputCtrl__destroy(OutputCtrl *this) {
+	if (this) {
 		fsm_destroy(this->fsm_buzzer);
 		fsm_destroy(this->fsm_leds);
 		fsm_destroy(this->fsm_info);
@@ -192,7 +166,6 @@ void OutputCtrl__destroy(OutputCtrl * this) {
 		free(this);
 	}
 }
-
 
 /* Definition of the functions */
 
@@ -254,35 +227,39 @@ static int _co2_anomaly(fsm_t *this) {
 //	return (measurement_flags & FLAG_LIGHT_EMERGENCY);
 //}
 
-
-
 static void _buzzer_on(fsm_t *this) {
-	BuzzerOutput* buzzer = ((SystemContext*) this->user_data)->actuator_buzzer;
-	BuzzerOutput__enable(buzzer);
+	BuzzerOutput *buzzer = ((SystemContext*) this->user_data)->actuator_buzzer;
+	extern int buzzer_disabled;
+
+	if (!buzzer_disabled) {
+		BuzzerOutput__enable(buzzer);
+	} else {
+		BuzzerOutput__disable(buzzer);
+	}
 }
 
 static void _buzzer_off(fsm_t *this) {
-	BuzzerOutput* buzzer = ((SystemContext*) this->user_data)->actuator_buzzer;
+	BuzzerOutput *buzzer = ((SystemContext*) this->user_data)->actuator_buzzer;
 	BuzzerOutput__disable(buzzer);
 }
 
 static void _set_green_leds(fsm_t *this) {
-	StatusLEDOutput* leds = ((SystemContext*) this->user_data)->actuator_leds;
+	StatusLEDOutput *leds = ((SystemContext*) this->user_data)->actuator_leds;
 	StatusLEDOutput__set_color(leds, GREEN);
 }
 
 static void _set_yellow_leds(fsm_t *this) {
-	StatusLEDOutput* leds = ((SystemContext*) this->user_data)->actuator_leds;
+	StatusLEDOutput *leds = ((SystemContext*) this->user_data)->actuator_leds;
 	StatusLEDOutput__set_color(leds, YELLOW);
 }
 
 static void _set_red_leds(fsm_t *this) {
-	StatusLEDOutput* leds = ((SystemContext*) this->user_data)->actuator_leds;
+	StatusLEDOutput *leds = ((SystemContext*) this->user_data)->actuator_leds;
 	StatusLEDOutput__set_color(leds, RED);
 }
 
-static void _show_info_hour(fsm_t* this) {
-	LCD1602Display* display = ((SystemContext*) this->user_data)->actuator_display;
+static void _show_info_hour(fsm_t *this) {
+	LCD1602Display *display = ((SystemContext*) this->user_data)->actuator_display;
 
 	time_t rawtime;
 	struct tm *timeinfo;
@@ -299,8 +276,8 @@ static void _show_info_hour(fsm_t* this) {
 	piUnlock(OUTPUT_LOCK);
 }
 
-static void _show_info_temp(fsm_t* this) {
-	LCD1602Display* display = ((SystemContext*) this->user_data)->actuator_display;
+static void _show_info_temp(fsm_t *this) {
+	LCD1602Display *display = ((SystemContext*) this->user_data)->actuator_display;
 	float t_val = ((SystemContext*) this->user_data)->sensor_values[0].val.fval;
 
 	LCD1602Display__set_cursor(display, 0, 1);
@@ -325,8 +302,8 @@ static void _show_info_temp(fsm_t* this) {
 	piUnlock(OUTPUT_LOCK);
 }
 
-static void _show_info_humid(fsm_t* this) {
-	LCD1602Display* display = ((SystemContext*) this->user_data)->actuator_display;
+static void _show_info_humid(fsm_t *this) {
+	LCD1602Display *display = ((SystemContext*) this->user_data)->actuator_display;
 	float rh_val = ((SystemContext*) this->user_data)->sensor_values[1].val.fval;
 
 	LCD1602Display__set_cursor(display, 0, 1);
@@ -348,8 +325,8 @@ static void _show_info_humid(fsm_t* this) {
 	piUnlock(OUTPUT_LOCK);
 }
 
-static void _show_info_light(fsm_t* this) {
-	LCD1602Display* display = ((SystemContext*) this->user_data)->actuator_display;
+static void _show_info_light(fsm_t *this) {
+	LCD1602Display *display = ((SystemContext*) this->user_data)->actuator_display;
 	int l_val = ((SystemContext*) this->user_data)->sensor_values[2].val.ival;
 
 	LCD1602Display__set_cursor(display, 0, 1);
@@ -371,21 +348,21 @@ static void _show_info_light(fsm_t* this) {
 	piUnlock(OUTPUT_LOCK);
 }
 
-static void _show_info_co2(fsm_t* this){
-	LCD1602Display* display = ((SystemContext*) this->user_data)->actuator_display;
+static void _show_info_co2(fsm_t *this) {
+	LCD1602Display *display = ((SystemContext*) this->user_data)->actuator_display;
 	int eco2_val = ((SystemContext*) this->user_data)->sensor_values[3].val.ival;
 
 	LCD1602Display__set_cursor(display, 0, 1);
 	LCD1602Display__print(display, "                ");
 	LCD1602Display__set_cursor(display, 0, 1);
 	if (((SystemContext*) this->user_data)->sensor_values[3].type != is_error) {
-		LCD1602Display__print(display, "CO2: %d ppm", eco2_val);
+		LCD1602Display__print(display, "eCO2: %d ppm", eco2_val);
 	} else {
 		if (((SystemContext*) this->user_data)->sensor_values[0].val.ival == -99) {
 			LCD1602Display__write(display, 0);
 			LCD1602Display__print(display, " Calibrando...");
 		} else {
-			LCD1602Display__print(display, "CO2: Error");
+			LCD1602Display__print(display, "eCO2: Error");
 		}
 	}
 
@@ -394,21 +371,21 @@ static void _show_info_co2(fsm_t* this){
 	piUnlock(OUTPUT_LOCK);
 }
 
-static void _show_warning_none(fsm_t* this) {
-	LCD1602Display* display = ((SystemContext*) this->user_data)->actuator_display;
+static void _show_warning_none(fsm_t *this) {
+	LCD1602Display *display = ((SystemContext*) this->user_data)->actuator_display;
 
 	LCD1602Display__set_cursor(display, 0, 0);
 	LCD1602Display__print(display, "                ");
 	LCD1602Display__set_cursor(display, 0, 0);
-	LCD1602Display__print(display, "roomPi      v4.0");
+	LCD1602Display__print(display, "roomPi      v7.0");
 
 	piLock(OUTPUT_LOCK);
 	output_flags &= ~(FLAG_NEXT_DISPLAY_WARNING);
 	piUnlock(OUTPUT_LOCK);
 }
 
-static void _show_warning_temp(fsm_t* this) {
-	LCD1602Display* display = ((SystemContext*) this->user_data)->actuator_display;
+static void _show_warning_temp(fsm_t *this) {
+	LCD1602Display *display = ((SystemContext*) this->user_data)->actuator_display;
 
 	LCD1602Display__set_cursor(display, 0, 0);
 	LCD1602Display__print(display, "                ");
@@ -421,8 +398,8 @@ static void _show_warning_temp(fsm_t* this) {
 	piUnlock(OUTPUT_LOCK);
 }
 
-static void _show_warning_humid(fsm_t* this) {
-	LCD1602Display* display = ((SystemContext*) this->user_data)->actuator_display;
+static void _show_warning_humid(fsm_t *this) {
+	LCD1602Display *display = ((SystemContext*) this->user_data)->actuator_display;
 
 	LCD1602Display__set_cursor(display, 0, 0);
 	LCD1602Display__print(display, "                ");
@@ -435,8 +412,8 @@ static void _show_warning_humid(fsm_t* this) {
 	piUnlock(OUTPUT_LOCK);
 }
 
-static void _show_warning_light(fsm_t* this) {
-	LCD1602Display* display = ((SystemContext*) this->user_data)->actuator_display;
+static void _show_warning_light(fsm_t *this) {
+	LCD1602Display *display = ((SystemContext*) this->user_data)->actuator_display;
 
 	LCD1602Display__set_cursor(display, 0, 0);
 	LCD1602Display__print(display, "                ");
@@ -449,8 +426,8 @@ static void _show_warning_light(fsm_t* this) {
 	piUnlock(OUTPUT_LOCK);
 }
 
-static void _show_warning_co2(fsm_t* this) {
-	LCD1602Display* display = ((SystemContext*) this->user_data)->actuator_display;
+static void _show_warning_co2(fsm_t *this) {
+	LCD1602Display *display = ((SystemContext*) this->user_data)->actuator_display;
 
 	LCD1602Display__set_cursor(display, 0, 0);
 	LCD1602Display__print(display, "                ");
