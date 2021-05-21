@@ -136,7 +136,7 @@ int main(int argc, char **argv) {
 	roompi_system = systemSetup();
 
 	// load system config options
-	FILE *fp = fopen("roompi.conf", "r");
+	FILE *fp = fopen("/home/pi/roompi.conf", "r");
 	if (fp != NULL) {
 		char chunk[64];
 		char parsed[8];
