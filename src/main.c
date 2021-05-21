@@ -233,8 +233,7 @@ int main(int argc, char **argv) {
 	}
 
 	void _force_next_display_isr() {
-		measurement_flags |= FLAG_NEXT_DISPLAY_INFO;
-		fsm_fire(roompi_system->root_output_ctrl->fsm_info);
+		output_flags |= FLAG_NEXT_DISPLAY_INFO;
 	}
 
 	void _toggle_buzzer_isr() {
