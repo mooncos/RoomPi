@@ -148,6 +148,14 @@ int main(int argc, char **argv) {
 					sprintf(parsed, "%s", cp + 1);
 					switch (i) {
 					case 0:
+						LCD1602Display__set_cursor(roompi_system->root_system->actuator_display, 0, 0);
+						LCD1602Display__print(roompi_system->root_system->actuator_display, "                ");
+						char aux[64];
+						strcpy(aux, chunk);
+						aux[strlen(aux)-1] = '\0';
+						char *po = strrchr(aux, '=');
+						LCD1602Display__set_cursor(roompi_system->root_system->actuator_display, 0, 0);
+						LCD1602Display__print(roompi_system->root_system->actuator_display, "P:%s", po + 2);
 						break;
 					case 1:
 						temp_crit_low = atof(parsed);
