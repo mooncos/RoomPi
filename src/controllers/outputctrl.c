@@ -362,7 +362,7 @@ static void _show_info_co2(fsm_t *this) {
 			LCD1602Display__write(display, 0);
 			LCD1602Display__print(display, " Calibrando...");
 		} else {
-			LCD1602Display__print(display, "eCO2: Error");
+			LCD1602Display__print(display, "eCO2: Wait");
 		}
 	}
 

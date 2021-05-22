@@ -93,20 +93,21 @@ SystemType* systemSetup(void) {
 
 	/* Creation of custom characters for the display */
 	int clock[8] = { 0x1F, 0x11, 0x0A, 0x04, 0x0E, 0x1F, 0x1F, 0x00 }; // clock symbol for wait operations
-	int good[8] = { 0x00, 0x0A, 0x0A, 0x0A, 0x00, 0x11, 0x0E, 0x00 }; // all good
+	int arrow[8] = { 0b00000, 0b00100, 0b00010, 0b11111, 0b00010, 0b00100, 0b00000, 0b00000 }; // arrow
 	int general_bad[8] = { 0x00, 0x0A, 0x0A, 0x0A, 0x00, 0x0E, 0x11, 0x00 }; // bad
 	int air[8] = { 0x00, 0x0C, 0x05, 0x1B, 0x14, 0x06, 0x00, 0x00 }; // Co2
 	int temp[8] = { 0x04, 0x0A, 0x0A, 0x0A, 0x0A, 0x11, 0x13, 0x0E }; // temp
 	int humid[8] = { 0x00, 0x04, 0x0A, 0x11, 0x11, 0x1F, 0x0E, 0x00 }; // humid
-	int noise[8] = { 0x01, 0x03, 0x07, 0x1F, 0x1F, 0x07, 0x03, 0x01 }; // dBs
+	//int noise[8] = { 0x01, 0x03, 0x07, 0x1F, 0x1F, 0x07, 0x03, 0x01 }; // dBs
 	int lux[8] = { 0x04, 0x15, 0x0E, 0x1B, 0x0E, 0x15, 0x04, 0x00 }; // lux
+	int test[8] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF }; // test
 	LCD1602Display__create_char(lcd_actuator, 0, clock);
-	LCD1602Display__create_char(lcd_actuator, 1, good);
+	LCD1602Display__create_char(lcd_actuator, 1, arrow);
 	LCD1602Display__create_char(lcd_actuator, 2, general_bad);
 	LCD1602Display__create_char(lcd_actuator, 3, air);
 	LCD1602Display__create_char(lcd_actuator, 4, temp);
 	LCD1602Display__create_char(lcd_actuator, 5, humid);
-	LCD1602Display__create_char(lcd_actuator, 6, noise);
+	LCD1602Display__create_char(lcd_actuator, 6, test);
 	LCD1602Display__create_char(lcd_actuator, 7, lux);
 
 	LCD1602Display__clear(lcd_actuator);
@@ -135,6 +136,8 @@ SystemType* systemSetup(void) {
 int main(int argc, char **argv) {
 	roompi_system = systemSetup();
 
+	int filerr = 0;
+
 	// load system config options
 	FILE *fp = fopen("/home/pi/roompi.conf", "r");
 	if (fp != NULL) {
@@ -152,10 +155,11 @@ int main(int argc, char **argv) {
 						LCD1602Display__print(roompi_system->root_system->actuator_display, "                ");
 						char aux[64];
 						strcpy(aux, chunk);
-						aux[strlen(aux)-1] = '\0';
+						aux[strlen(aux) - 1] = '\0';
 						char *po = strrchr(aux, '=');
 						LCD1602Display__set_cursor(roompi_system->root_system->actuator_display, 0, 0);
-						LCD1602Display__print(roompi_system->root_system->actuator_display, "P:%s", po + 2);
+						LCD1602Display__write(roompi_system->root_system->actuator_display, 1);
+						LCD1602Display__print(roompi_system->root_system->actuator_display, " %s", po + 2);
 						break;
 					case 1:
 						temp_crit_low = atof(parsed);
@@ -211,9 +215,18 @@ int main(int argc, char **argv) {
 					default:
 						break;
 					}
-				}
-			}
+				} else
+					filerr = 1;
+			} else
+				filerr = 1;
 		}
+	} else
+		filerr = 1;
+
+	if (filerr) {
+		LCD1602Display__set_cursor(roompi_system->root_system->actuator_display, 0, 0);
+		LCD1602Display__write(roompi_system->root_system->actuator_display, 2);
+		LCD1602Display__print(roompi_system->root_system->actuator_display, "I/O roompi.conf");
 	}
 
 	// si pulso boton activa measurement processing
@@ -238,7 +251,7 @@ int main(int argc, char **argv) {
 
 	void _toggle_buzzer_isr() {
 		buzzer_disabled ^= 0x1;
-		if(!(measurement_flags & (FLAG_TEMP_EMERGENCY | FLAG_HUMID_EMERGENCY | FLAG_LIGHT_EMERGENCY | FLAG_CO2_EMERGENCY))){
+		if (!(measurement_flags & (FLAG_TEMP_EMERGENCY | FLAG_HUMID_EMERGENCY | FLAG_LIGHT_EMERGENCY | FLAG_CO2_EMERGENCY))) {
 			BuzzerOutput__disable(roompi_system->root_system->actuator_buzzer);
 		} else {
 			BuzzerOutput__toggle(roompi_system->root_system->actuator_buzzer);
