@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-dark-5@1.0.1/dist/css/bootstrap-dark.min.css" rel="stylesheet">
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+    <script
+      src="https://code.jquery.com/jquery-3.6.0.min.js"
+      integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4="
+      crossorigin="anonymous"
+    ></script>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+
+    <title>RoomPi Config</title>
+  </head>
+  <body class="">
+    <main class="form-container">
+      <h1 class="h3 mb-3 fw-normal">Ajuste de parámetros de RoomPi</h1>
+      <form method="post" action="">
+        <div class="row">
+          <div class="col">
+            <div class="form-floating">
+              <select class="form-select" id="profile" name="profile">
+                {% for key, value in profiles.items() %}
+                <option>{{ key }}</option>
+                {% endfor %}
+                <option>Custom...</option>
+              </select>
+              <label for="profile">Selecciona un perfil...</label>
+            </div>
+          </div>
+          <div class="col">
+            <div class="form-floating">
+              <input
+                type="number"
+                step="0.1"
+                class="form-control"
+                id="temp_crit_low"
+                name="temp_crit_low"
+              />
+              <label for="temp_crit_low">Temperatura crítica inferior (ºC)</label>
+            </div>
+
+            <div class="form-floating">
+              <input
+                type="number"
+                step="0.1"
+                class="form-control"
+                id="temp_crit_high"
+                name="temp_crit_high"
+              />
+              <label for="temp_crit_high">Temperatura crítica superior (ºC)</label>
+            </div>
+
+            <div class="form-floating">
+              <input
+                type="number"
+                step="0.1"
+                class="form-control"
+                id="temp_warn_low"
+                name="temp_warn_low"
+              />
+              <label for="temp_warn_low">Temperatura de aviso inferior (ºC)</label>
+            </div>
+
+            <div class="form-floating">
+              <input
+                type="number"
+                step="0.1"
+                class="form-control"
+                id="temp_warn_high"
+                name="temp_warn_high"
+              />
+              <label for="temp_warn_high">Temperatura de aviso superior (ºC)</label>
+            </div>
+          </div>
+          <div class="col">
+            <div class="form-floating">
+              <input
+                type="number"
+                step="0.1"
+                class="form-control"
+                id="rh_crit_low"
+                name="rh_crit_low"
+              />
+              <label for="rh_crit_low">HR crítica inferior (%H)</label>
+            </div>
+
+            <div class="form-floating">
+              <input
+                type="number"
+                step="0.1"
+                class="form-control"
+                id="rh_crit_high"
+                name="rh_crit_high"
+              />
+              <label for="rh_crit_high">HR crítica superior (%H)</label>
+            </div>
+
+            <div class="form-floating">
+              <input
+                type="number"
+                step="0.1"
+                class="form-control"
+                id="rh_warn_low"
+                name="rh_warn_low"
+              />
+              <label for="rh_warn_low">HR de aviso inferior (%H)</label>
+            </div>
+
+            <div class="form-floating">
+              <input
+                type="number"
+                step="0.1"
+                class="form-control"
+                id="rh_warn_high"
+                name="rh_warn_high"
+              />
+              <label for="rh_warn_high">HR de aviso superior (%H)</label>
+            </div>
+          </div>
+          <div class="col">
+            <div class="form-floating">
+              <input
+                type="number"
+                step="1"
+                class="form-control"
+                id="lux_crit"
+                name="lux_crit"
+              />
+              <label for="lux_crit">Intensidad lumínica critíca (lux)</label>
+            </div>
+
+            <div class="form-floating">
+              <input
+                type="number"
+                step="1"
+                class="form-control"
+                id="lux_warn"
+                name="lux_warn"
+              />
+              <label for="lux_warn">Intensidad lumínica de aviso (lux)</label>
+            </div>
+
+            <div class="form-floating">
+              <input
+                type="number"
+                step="1"
+                class="form-control"
+                id="eco2_crit"
+                name="eco2_crit"
+              />
+              <label for="eco2_crit">CO2 equivalente critíca (ppm)</label>
+            </div>
+
+            <div class="form-floating">
+              <input
+                type="number"
+                step="1"
+                class="form-control"
+                id="eco2_warn"
+                name="eco2_warn"
+              />
+              <label for="eco2_warn">CO2 equivalente de aviso (ppm)</label>
+            </div>
+          </div>
+          <div class="col">
+            <div class="form-floating">
+              <input
+                type="number"
+                step="1"
+                class="form-control"
+                id="meas_t_ms"
+                name="meas_t_ms"
+              />
+              <label for="meas_t_ms">Timer FSM MeasurementCtrl (ms)</label>
+            </div>
+            <div class="form-floating">
+              <input
+                type="number"
+                step="1"
+                class="form-control"
+                id="dht11_t_ms"
+                name="dht11_t_ms"
+              />
+              <label for="dht11_t_ms">Timer FSM DHT11 (ms)</label>
+            </div>
+            <div class="form-floating">
+              <input
+                type="number"
+                step="1"
+                class="form-control"
+                id="bh1750_t_ms"
+                name="bh1750_t_ms"
+              />
+              <label for="bh1750_t_ms">Timer FSM BH1750 (ms)</label>
+            </div>
+            <div class="form-floating">
+              <input
+                type="number"
+                step="1"
+                class="form-control"
+                id="ccs811_t_ms"
+                name="ccs811_t_ms"
+              />
+              <label for="ccs811_t_ms">Timer FSM CCS811 (ms)</label>
+            </div>
+            <div class="form-floating">
+              <input
+                type="number"
+                step="1"
+                class="form-control"
+                id="output_t_ms"
+                name="output_t_ms"
+              />
+              <label for="output_t_ms">Timer FSM OutputCtrl (ms)</label>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-lg btn-primary" type="submit">Aplicar</button>
+      </form>
+    </main>
+  </body>
+</html>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="light dark">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-dark-5@1.0.1/dist/css/bootstrap-dark.min.css" rel="stylesheet">
+    <link
+      rel="stylesheet"
+      href="{{ url_for('static', filename='style.css') }}"
+    />
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+
+    <title>RoomPi Config</title>
+  </head>
+  <body class="">
+    <main class="form-container" style="max-width: 50%;">
+      <h1 class="h3 mb-3 fw-normal">Ajuste de parámetros de RoomPi</h1>
+      <div class="alert alert-success" role="alert">HTTP POST 200 OK</div>
+      <h2 class="h4 mb-3 fw-normal">
+        Se ha actualizado el fichero de parámetros <code>roompi.conf</code> correctamente, por favor <strong>reinicie el sistema para que los cambios surtan efecto</strong>
+      </h2>
+    </main>
+  </body>
+</html>
