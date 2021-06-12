@@ -4,7 +4,7 @@
 <img src="https://img.shields.io/badge/version-v7.0-success/"/>
 
 <a href="https://github.com/margobra8/RoomPi/blob/main/LICENSE">
-<img src="https://img.shields.io/github/license/margobra8/RoomPi"/>
+<img src="https://img.shields.io/badge/license-MIT-informational"/>
 </a>
 
 <a href="https://github.com/margobra8/RoomPi/tree/main/docs">
@@ -20,6 +20,7 @@
 </p>
 
 > Smart environmental monitoring system for buildings
+
 > SDG2 Innovative project 2020-2021
 
 ##### Authors: Victoria M. Gullón y Marcos Gómez
@@ -107,8 +108,6 @@ sudo apt-get install -y libc6-armel-cross libc6-dev-armel-cross binutils-arm-lin
 ```
 
 ### C Libraries
-
-Para instalar las librerías utilizadas en el proyecto es necesario compilar e instalar dichas dependencias. Las librerías necesitan tener `git` para descargarse.
 
 To make use of the mentioned libraries in the project you must compile and install them beforehand. To dowload the various libraries you need have `git` installed.
 
